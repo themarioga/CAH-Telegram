@@ -1,7 +1,7 @@
 package org.themarioga.telegram.cah.models;
 
 import jakarta.persistence.*;
-import org.themarioga.engine.commons.models.Room;
+import org.themarioga.commons.engine.models.Room;
 
 import java.io.Serializable;
 import java.util.Objects;

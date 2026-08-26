@@ -2,8 +2,8 @@ package org.themarioga.telegram.cah.dao.impl;
 
 import org.springframework.stereotype.Repository;
 import org.themarioga.engine.cah.models.game.Game;
-import org.themarioga.engine.commons.dao.AbstractHibernateDao;
-import org.themarioga.engine.commons.models.User;
+import org.themarioga.commons.engine.dao.AbstractHibernateDao;
+import org.themarioga.commons.engine.models.User;
 import org.themarioga.telegram.cah.dao.intf.TelegramGameDao;
 import org.themarioga.telegram.cah.models.TelegramGame;
 

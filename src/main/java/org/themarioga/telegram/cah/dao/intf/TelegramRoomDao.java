@@ -1,7 +1,7 @@
 package org.themarioga.telegram.cah.dao.intf;
 
-import org.themarioga.engine.commons.dao.InterfaceHibernateDao;
-import org.themarioga.engine.commons.models.Room;
+import org.themarioga.commons.engine.dao.InterfaceHibernateDao;
+import org.themarioga.commons.engine.models.Room;
 import org.themarioga.telegram.cah.models.TelegramRoom;
 
 public interface TelegramRoomDao extends InterfaceHibernateDao<TelegramRoom> {

@@ -2,7 +2,7 @@ package org.themarioga.telegram.cah.dao.intf;
 
 import org.themarioga.engine.cah.models.game.Game;
 import org.themarioga.engine.cah.models.game.Player;
-import org.themarioga.engine.commons.dao.InterfaceHibernateDao;
+import org.themarioga.commons.engine.dao.InterfaceHibernateDao;
 import org.themarioga.telegram.cah.models.TelegramPlayer;
 
 import java.util.List;

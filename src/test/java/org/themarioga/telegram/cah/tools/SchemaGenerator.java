@@ -32,12 +32,12 @@ import java.util.Map;
 public class SchemaGenerator {
 
     private static final List<Class<?>> ENTITIES = List.of(
-            org.themarioga.engine.commons.models.Lang.class,
-            org.themarioga.engine.commons.models.Tag.class,
-            org.themarioga.engine.commons.models.User.class,
-            org.themarioga.engine.commons.models.Room.class,
-            org.themarioga.engine.commons.models.Game.class,
-            org.themarioga.engine.commons.models.Player.class,
+            org.themarioga.commons.engine.models.Lang.class,
+            org.themarioga.commons.engine.models.Tag.class,
+            org.themarioga.commons.engine.models.User.class,
+            org.themarioga.commons.engine.models.Room.class,
+            org.themarioga.commons.engine.models.Game.class,
+            org.themarioga.commons.engine.models.Player.class,
             org.themarioga.engine.cah.models.dictionaries.Dictionary.class,
             org.themarioga.engine.cah.models.dictionaries.DictionaryCollaborator.class,
             org.themarioga.engine.cah.models.dictionaries.Card.class,
@@ -47,7 +47,7 @@ public class SchemaGenerator {
             org.themarioga.engine.cah.models.game.PlayedCard.class,
             org.themarioga.engine.cah.models.game.PlayerHandCard.class,
             org.themarioga.engine.cah.models.game.VotedCard.class,
-            org.themarioga.telegram.commons.models.TelegramUser.class,
+            org.themarioga.commons.telegram.models.TelegramUser.class,
             org.themarioga.telegram.cah.models.TelegramRoom.class,
             org.themarioga.telegram.cah.models.TelegramGame.class,
             org.themarioga.telegram.cah.models.TelegramPlayer.class);

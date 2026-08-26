@@ -2,8 +2,8 @@ package org.themarioga.telegram.cah.services.intf;
 
 import org.themarioga.engine.cah.models.game.Game;
 import org.themarioga.engine.cah.models.game.Player;
-import org.themarioga.engine.commons.models.Room;
-import org.themarioga.engine.commons.models.User;
+import org.themarioga.commons.engine.models.Room;
+import org.themarioga.commons.engine.models.User;
 import org.themarioga.telegram.cah.models.TelegramGame;
 import org.themarioga.telegram.cah.models.TelegramPlayer;
 

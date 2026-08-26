@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.themarioga.engine.commons.models.Lang;
-import org.themarioga.engine.commons.services.intf.I18NService;
-import org.themarioga.engine.commons.services.intf.LanguageService;
+import org.themarioga.commons.engine.models.Lang;
+import org.themarioga.commons.engine.services.intf.I18NService;
+import org.themarioga.commons.engine.services.intf.LanguageService;
 
 import java.util.List;
 

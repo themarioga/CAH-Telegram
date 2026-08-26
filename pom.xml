@@ -20,7 +20,7 @@
         <!-- Telegram Utils -->
         <dependency>
             <groupId>org.themarioga</groupId>
-            <artifactId>TelegramBotUtils</artifactId>
+            <artifactId>commons-telegram</artifactId>
         </dependency>
 
         <!-- CAH Engine -->

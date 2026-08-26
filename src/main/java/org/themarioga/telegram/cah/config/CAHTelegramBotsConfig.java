@@ -9,14 +9,14 @@ import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.starter.SpringLongPollingBot;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import org.telegram.telegrambots.webhook.starter.SpringTelegramWebhookBot;
-import org.themarioga.telegram.commons.models.UpdateInterceptor;
-import org.themarioga.telegram.commons.services.impl.BotMessageServiceImpl;
-import org.themarioga.telegram.commons.services.impl.LongPollingBotServiceImpl;
-import org.themarioga.telegram.commons.services.impl.PendingReplyRegistry;
-import org.themarioga.telegram.commons.services.impl.WebhookBotServiceImpl;
-import org.themarioga.telegram.commons.services.intf.ApplicationService;
-import org.themarioga.telegram.commons.services.intf.BotMessageService;
-import org.themarioga.telegram.commons.services.intf.BotService;
+import org.themarioga.commons.telegram.models.UpdateInterceptor;
+import org.themarioga.commons.telegram.services.impl.BotMessageServiceImpl;
+import org.themarioga.commons.telegram.services.impl.LongPollingBotServiceImpl;
+import org.themarioga.commons.telegram.services.impl.PendingReplyRegistry;
+import org.themarioga.commons.telegram.services.impl.WebhookBotServiceImpl;
+import org.themarioga.commons.telegram.services.intf.ApplicationService;
+import org.themarioga.commons.telegram.services.intf.BotMessageService;
+import org.themarioga.commons.telegram.services.intf.BotService;
 
 import java.util.List;
 
@@ -31,7 +31,7 @@ import java.util.List;
  * <p>
  * El modo (long-polling o webhook) es común a los dos bots y lo decide {@code telegram.bots.type},
  * el mismo que elige qué objeto de aplicación crea
- * {@link org.themarioga.telegram.commons.config.TelegramBotsRegistrarConfig}. La versión anterior
+ * {@link org.themarioga.commons.telegram.config.TelegramBotsRegistrarConfig}. La versión anterior
  * declaraba <b>dos {@code @Bean} con el mismo nombre</b> en la misma clase distinguidos por
  * {@code @Conditional}, algo que Spring Boot 4 ya no permite.
  */

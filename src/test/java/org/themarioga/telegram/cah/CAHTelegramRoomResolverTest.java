@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
-import org.themarioga.engine.commons.models.Room;
+import org.themarioga.commons.engine.models.Room;
 import org.themarioga.telegram.cah.dao.intf.TelegramRoomDao;
 import org.themarioga.telegram.cah.services.impl.CAHTelegramRoomResolver;
 

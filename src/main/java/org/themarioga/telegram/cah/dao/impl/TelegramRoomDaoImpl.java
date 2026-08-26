@@ -1,8 +1,8 @@
 package org.themarioga.telegram.cah.dao.impl;
 
 import org.springframework.stereotype.Repository;
-import org.themarioga.engine.commons.dao.AbstractHibernateDao;
-import org.themarioga.engine.commons.models.Room;
+import org.themarioga.commons.engine.dao.AbstractHibernateDao;
+import org.themarioga.commons.engine.models.Room;
 import org.themarioga.telegram.cah.dao.intf.TelegramRoomDao;
 import org.themarioga.telegram.cah.models.TelegramRoom;
 

@@ -6,12 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.themarioga.engine.commons.exceptions.ApplicationException;
-import org.themarioga.engine.commons.models.Room;
-import org.themarioga.engine.commons.services.intf.RoomService;
+import org.themarioga.commons.engine.exceptions.ApplicationException;
+import org.themarioga.commons.engine.models.Room;
+import org.themarioga.commons.engine.services.intf.RoomService;
 import org.themarioga.telegram.cah.dao.intf.TelegramRoomDao;
 import org.themarioga.telegram.cah.models.TelegramRoom;
-import org.themarioga.telegram.commons.services.intf.TelegramRoomResolver;
+import org.themarioga.commons.telegram.services.intf.TelegramRoomResolver;
 
 /**
  * Traduce un chat de grupo de Telegram a una sala del motor.

@@ -9,10 +9,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.telegram.telegrambots.longpolling.TelegramBotsLongPollingApplication;
 import org.telegram.telegrambots.longpolling.starter.SpringLongPollingBot;
-import org.themarioga.telegram.commons.models.CallbackQueryHandler;
-import org.themarioga.telegram.commons.models.CommandHandler;
-import org.themarioga.telegram.commons.services.impl.AuthUpdateInterceptor;
-import org.themarioga.telegram.commons.services.intf.ApplicationService;
+import org.themarioga.commons.telegram.models.CallbackQueryHandler;
+import org.themarioga.commons.telegram.models.CommandHandler;
+import org.themarioga.commons.telegram.services.impl.AuthUpdateInterceptor;
+import org.themarioga.commons.telegram.services.intf.ApplicationService;
 
 import java.util.Map;
 
