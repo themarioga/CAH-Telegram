@@ -1,5 +1,6 @@
 package org.themarioga.telegram.cah;
 
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,10 +21,22 @@ import java.util.List;
 @SpringBootTest
 class SchemaBaselineTest {
 
+    /** Textos recuperados de las migraciones antiguas, más los ocho que hubo que escribir. */
+    private static final int EXPECTED_TAGS = 183;
+
     @Autowired
     private LanguageService languageService;
     @Autowired
     private I18NService i18NService;
+    @Autowired
+    private EntityManager entityManager;
+
+    private long countTags(String lang) {
+        return entityManager
+                .createQuery("SELECT COUNT(t) FROM Tag t WHERE t.lang.id = :lang", Long.class)
+                .setParameter("lang", lang)
+                .getSingleResult();
+    }
 
     @Test
     void schemaMatchesTheEntityModel() {
@@ -54,6 +67,33 @@ class SchemaBaselineTest {
         String welcome = i18NService.get("PLAYER_WELCOME", "es");
         Assertions.assertNotEquals("PLAYER_WELCOME", welcome, "el tag no está en la tabla");
         Assertions.assertTrue(welcome.contains("\n"), "los \\n del SQL deben llegar como saltos de línea");
+    }
+
+    /**
+     * Los textos del bot de diccionarios estaban en las migraciones de CAH-Engine, no en las de
+     * Commons-Engine, y en la primera recuperación se quedaron fuera: el bot habría enseñado el
+     * nombre del tag en crudo en casi todas sus pantallas. Este test lo detecta si vuelve a pasar.
+     */
+    @Test
+    void dictionaryBotTagsArePresent() {
+        for (String tag : List.of("DICTIONARIES_MAIN_MENU", "DICTIONARY_CREATE", "DICTIONARY_CREATED",
+                "CARDS_MENU", "CARDS_WHITE_CARD_ADD", "COLLABORATORS_MENU", "ERROR_DICTIONARY_NOT_FOUND",
+                "COLLABORATOR_ADD_MAX_REACHED", "UNKNOWN_ERROR")) {
+            for (String lang : List.of("es", "en")) {
+                Assertions.assertNotEquals(tag, i18NService.get(tag, lang),
+                        () -> "falta el tag " + tag + " en " + lang);
+            }
+        }
+    }
+
+    /**
+     * Los dos idiomas tienen que estar completos: si a uno le falta un tag, el usuario que lo tenga
+     * configurado ve el nombre del tag donde debería ir el texto.
+     */
+    @Test
+    void bothLanguagesHaveTheSameTags() {
+        Assertions.assertEquals(EXPECTED_TAGS, countTags("es"));
+        Assertions.assertEquals(EXPECTED_TAGS, countTags("en"));
     }
 
 }
