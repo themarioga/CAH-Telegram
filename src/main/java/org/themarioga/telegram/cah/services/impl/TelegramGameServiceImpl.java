@@ -103,6 +103,12 @@ public class TelegramGameServiceImpl implements TelegramGameService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void deletePlayer(TelegramPlayer telegramPlayer) {
+        telegramPlayerDao.delete(telegramPlayer);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
     public void deleteGameData(Game game) {
         for (TelegramPlayer telegramPlayer : telegramPlayerDao.getByGame(game)) {
             telegramPlayerDao.delete(telegramPlayer);

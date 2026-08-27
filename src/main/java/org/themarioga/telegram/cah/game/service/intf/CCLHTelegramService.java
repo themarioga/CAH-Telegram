@@ -54,6 +54,24 @@ public interface CCLHTelegramService {
 
     void gameChangeNCardsToWin(long chatId, String callbackQueryId, String data);
 
+    // ///////////// Jugadores y arranque //////////////////
+
+    void gameJoinQuery(long chatId, String callbackQueryId);
+
+    void leaveGame(String callbackQueryId);
+
+    void gameStartQuery(long chatId, String callbackQueryId);
+
+    // ///////////// Borrado //////////////////
+
+    /**
+     * Botón de borrar del grupo. Para el creador borra la partida; para el resto, con la partida ya
+     * en marcha, es un voto para borrarla.
+     */
+    void gameDeleteGroupQuery(long chatId, String callbackQueryId);
+
+    void gameDeletePrivateQuery(String callbackQueryId);
+
     // ///////////// Ayuda //////////////////
 
     void sendHelpMessage(long chatId);

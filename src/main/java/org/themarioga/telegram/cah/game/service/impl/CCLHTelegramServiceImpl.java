@@ -15,6 +15,12 @@ import org.themarioga.commons.engine.enums.GameStatusEnum;
 import org.themarioga.commons.engine.exceptions.ApplicationException;
 import org.themarioga.commons.engine.exceptions.game.GameDoesntExistsException;
 import org.themarioga.commons.engine.exceptions.game.GameOnlyCreatorCanPerformActionException;
+import org.themarioga.commons.engine.exceptions.player.PlayerDoesntExistsException;
+import org.themarioga.engine.cah.enums.RoundStatusEnum;
+import org.themarioga.engine.cah.models.game.PlayerHandCard;
+import org.themarioga.engine.cah.models.game.Round;
+import org.themarioga.engine.cah.services.intf.game.PlayerService;
+import org.themarioga.telegram.cah.models.TelegramPlayer;
 import org.themarioga.commons.engine.exceptions.user.UserAlreadyExistsException;
 import org.themarioga.commons.engine.exceptions.user.UserDoesntExistsException;
 import org.themarioga.commons.engine.models.Lang;
@@ -73,6 +79,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
     private final BotMessageService botMessageService;
     private final CAHService cahService;
     private final GameService gameService;
+    private final PlayerService playerService;
     private final DictionaryService dictionaryService;
     private final UserService userService;
     private final TelegramUserService telegramUserService;
@@ -85,7 +92,8 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
 
     @Autowired
     public CCLHTelegramServiceImpl(@Qualifier("cclhBotMessageService") BotMessageService botMessageService,
-                                   CAHService cahService, GameService gameService, DictionaryService dictionaryService,
+                                   CAHService cahService, GameService gameService, PlayerService playerService,
+                                   DictionaryService dictionaryService,
                                    UserService userService, TelegramUserService telegramUserService,
                                    TelegramGameService telegramGameService, TelegramRoomResolver roomResolver,
                                    I18NService i18NService, ErrorMessageResolver errorMessageResolver,
@@ -93,6 +101,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         this.botMessageService = botMessageService;
         this.cahService = cahService;
         this.gameService = gameService;
+        this.playerService = playerService;
         this.dictionaryService = dictionaryService;
         this.userService = userService;
         this.telegramUserService = telegramUserService;
@@ -343,6 +352,137 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         changeSetting(chatId, game -> cahService.setNumberOfPointsToWin(game.getRoom(), Integer.parseInt(data)));
     }
 
+    // ///////////// Jugadores y arranque //////////////////
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameJoinQuery(long chatId, String callbackQueryId) {
+        User user = requireSession();
+
+        guarded(() -> {
+            TelegramGame telegramGame = getGameByChatId(chatId);
+
+            if (Objects.equals(telegramGame.getGame().getCreator().getId(), user.getId())) {
+                botMessageService.answerCallbackQuery(callbackQueryId, i18NService.get("ERROR_PLAYER_ALREADY_JOINED"));
+                return;
+            }
+
+            // El mensaje privado del jugador se envía antes de unirle, porque su identificador es lo
+            // que hace falta para luego editarlo con su mano de cartas.
+            long playerChatId = chatId();
+            TelegramSession session = TelegramSession.capture();
+
+            botMessageService.sendMessageAsync(playerChatId, i18NService.get("PLAYER_JOINING"))
+                    .thenAccept(joining -> session.run(() -> joinGame(chatId, joining.getMessageId(), callbackQueryId)))
+                    .exceptionally(e -> {
+                        logger.error("No se ha podido unir al jugador {}: {}", playerChatId, e.getMessage(), e);
+
+                        return null;
+                    });
+        });
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = ApplicationException.class)
+    protected void joinGame(long chatId, int playerMessageId, String callbackQueryId) {
+        guarded(() -> {
+            TelegramGame telegramGame = getGameByChatId(chatId);
+
+            Game game = cahService.addPlayer(telegramGame.getGame().getRoom());
+
+            telegramGameService.createPlayer(playerOf(game, requireSession()), playerMessageId);
+
+            botMessageService.editMessage(chatId(), playerMessageId, i18NService.get("PLAYER_JOINED"),
+                    InlineKeyboardMarkup.builder()
+                            .keyboardRow(new InlineKeyboardRow(button("GAME_LEAVE", "game_leave")))
+                            .build());
+
+            sendMainMenu(telegramGame);
+        });
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void leaveGame(String callbackQueryId) {
+        User user = requireSession();
+
+        guarded(() -> {
+            TelegramGame telegramGame = getGameByPlayer(user);
+
+            // Hay que quedarse con el mensaje antes de que el motor borre al jugador
+            TelegramPlayer telegramPlayer = telegramGameService.getByPlayer(playerOf(telegramGame.getGame(), user));
+            Integer playerMessageId = telegramPlayer != null ? telegramPlayer.getHandMessageId() : null;
+
+            cahService.leavePlayer(telegramGame.getGame().getRoom());
+
+            if (telegramPlayer != null) telegramGameService.deletePlayer(telegramPlayer);
+
+            botMessageService.answerCallbackQuery(callbackQueryId, i18NService.get("GAME_LEFT"));
+            if (playerMessageId != null) botMessageService.deleteMessage(chatId(), playerMessageId);
+
+            sendMainMenu(telegramGame);
+        });
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameStartQuery(long chatId, String callbackQueryId) {
+        requireSession();
+
+        guarded(() -> {
+            TelegramGame telegramGame = getGameAndCheckCreator(chatId);
+
+            // startGame arranca ya la primera ronda: el motor no deja la partida a medias
+            cahService.startGame(telegramGame.getGame().getRoom());
+
+            sendMainMenu(telegramGame);
+            sendRound(telegramGame);
+        });
+    }
+
+    // ///////////// Borrado //////////////////
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameDeleteGroupQuery(long chatId, String callbackQueryId) {
+        User user = requireSession();
+
+        guarded(() -> {
+            TelegramGame telegramGame = getGameByChatId(chatId);
+            Game game = telegramGame.getGame();
+
+            if (Objects.equals(game.getCreator().getId(), user.getId())) {
+                deleteGame(telegramGame);
+                return;
+            }
+
+            // Quien no es el creador solo puede pedir el borrado, y solo con la partida en marcha.
+            // El código anterior llegaba aquí capturando la excepción de "no eres el dueño".
+            if (game.getStatus() != GameStatusEnum.STARTED) {
+                botMessageService.answerCallbackQuery(callbackQueryId,
+                        i18NService.get("ERROR_GAME_ONLY_CREATOR_CAN_DELETE"));
+                return;
+            }
+
+            cahService.voteForDeletion(game.getRoom());
+
+            botMessageService.answerCallbackQuery(callbackQueryId, i18NService.get("PLAYER_VOTED_DELETION"));
+
+            if (game.getStatus() == GameStatusEnum.DELETING) {
+                deleteGame(telegramGame);
+            } else {
+                sendMainMenu(telegramGame);
+            }
+        });
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameDeletePrivateQuery(String callbackQueryId) {
+        User user = requireSession();
+
+        guarded(() -> deleteGame(getGameByCreator(user)));
+    }
+
     // ///////////// Ayuda //////////////////
 
     @Override
@@ -449,6 +589,107 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
     }
 
     /**
+     * Pinta la ronda en curso: la carta negra en el grupo y, en el privado de cada jugador, su mano
+     * con un botón por carta.
+     */
+    private void sendRound(TelegramGame telegramGame) {
+        Game game = telegramGame.getGame();
+        Round round = game.getCurrentRound();
+
+        if (round == null || round.getStatus() != RoundStatusEnum.PLAYING) {
+            logger.error("La ronda de la partida {} no está en juego", game.getId());
+            return;
+        }
+
+        Long groupChatId = telegramGameService.getChatId(game.getRoom());
+        if (groupChatId != null) {
+            TelegramSession session = TelegramSession.capture();
+
+            botMessageService.sendMessageAsync(groupChatId, MessageFormat.format(i18NService.get("GAME_SELECT_CARD"),
+                            round.getRoundNumber(), round.getRoundBlackCard().getText()))
+                    .thenAccept(blackCard -> session.run(() ->
+                            telegramGameService.setCurrentRoundMessageId(telegramGame, blackCard.getMessageId())))
+                    .exceptionally(e -> {
+                        logger.error("No se ha podido enviar la carta negra: {}", e.getMessage(), e);
+
+                        return null;
+                    });
+        }
+
+        for (TelegramPlayer telegramPlayer : telegramGameService.getPlayers(game)) {
+            Player player = telegramPlayer.getPlayer();
+
+            // En democracia juegan todos; en el resto de modos, el presidente de la ronda no juega
+            if (game.getVotationMode() != VotationModeEnum.DEMOCRACY
+                    && round.getRoundPresident() != null
+                    && Objects.equals(round.getRoundPresident().getId(), player.getId())) {
+                continue;
+            }
+
+            Long playerChatId = chatIdOf(player.getUser());
+            if (playerChatId == null) continue;
+
+            InlineKeyboardMarkup.InlineKeyboardMarkupBuilder keyboard = InlineKeyboardMarkup.builder();
+            for (PlayerHandCard handCard : player.getHand()) {
+                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
+                        .text(handCard.getCard().getText())
+                        .callbackData("play_card__" + handCard.getCard().getId()).build()));
+            }
+
+            botMessageService.editMessage(playerChatId, telegramPlayer.getHandMessageId(),
+                    MessageFormat.format(i18NService.get("PLAYER_SELECT_CARD"),
+                            round.getRoundNumber(), round.getRoundBlackCard().getText()),
+                    keyboard.build());
+        }
+    }
+
+    /**
+     * Borra la partida y limpia los mensajes que dejó por los chats.
+     * <p>
+     * Los identificadores se recogen <b>antes</b> de que el motor borre la partida: después, las
+     * relaciones ya no se pueden recorrer.
+     */
+    private void deleteGame(TelegramGame telegramGame) {
+        Game game = telegramGame.getGame();
+        boolean started = game.getStatus() == GameStatusEnum.STARTED;
+
+        List<PlayerMessage> playerMessages = collectPlayerMessages(game);
+        Long groupChatId = telegramGameService.getChatId(game.getRoom());
+        Long creatorChatId = chatIdOf(game.getCreator());
+        Integer firstMessageId = telegramGame.getFirstMessageId();
+        Integer creatorMessageId = telegramGame.getCreatorMessageId();
+        Integer roundMessageId = telegramGame.getCurrentRoundMessageId();
+
+        telegramGameService.deleteGameData(game);
+        cahService.deleteGameByCreator(game.getRoom());
+
+        for (PlayerMessage playerMessage : playerMessages) {
+            botMessageService.deleteMessage(playerMessage.chatId(), playerMessage.messageId());
+        }
+        if (started && groupChatId != null && roundMessageId != null) {
+            botMessageService.deleteMessage(groupChatId, roundMessageId);
+        }
+
+        String deleted = i18NService.get("GAME_DELETED");
+        if (groupChatId != null) botMessageService.editMessage(groupChatId, firstMessageId, deleted);
+        if (creatorChatId != null) botMessageService.editMessage(creatorChatId, creatorMessageId, deleted);
+    }
+
+    private record PlayerMessage(long chatId, int messageId) {}
+
+    private List<PlayerMessage> collectPlayerMessages(Game game) {
+        return telegramGameService.getPlayers(game).stream()
+                .map(telegramPlayer -> {
+                    Long playerChatId = chatIdOf(telegramPlayer.getPlayer().getUser());
+
+                    return playerChatId != null
+                            ? new PlayerMessage(playerChatId, telegramPlayer.getHandMessageId()) : null;
+                })
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    /**
      * Edita el mensaje de la partida en el grupo. El chat no está en la entidad del motor: hay que
      * resolverlo por la tabla de equivalencias.
      */
@@ -506,6 +747,30 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         if (telegramGame == null) throw new GameDoesntExistsException();
 
         return telegramGame;
+    }
+
+    private TelegramGame getGameByCreator(User creator) {
+        TelegramGame telegramGame = telegramGameService.getByCreator(creator);
+        if (telegramGame == null) throw new GameDoesntExistsException();
+
+        return telegramGame;
+    }
+
+    private TelegramGame getGameByPlayer(User user) {
+        Player player = playerService.findByUser(user);
+        if (player == null) throw new PlayerDoesntExistsException();
+
+        TelegramGame telegramGame = telegramGameService.getByGame(player.getGame());
+        if (telegramGame == null) throw new GameDoesntExistsException();
+
+        return telegramGame;
+    }
+
+    private Player playerOf(Game game, User user) {
+        Player player = playerService.findPlayerByGameAndUser(game, user);
+        if (player == null) throw new PlayerDoesntExistsException();
+
+        return player;
     }
 
     private TelegramGame getGameAndCheckCreator(long chatId) {

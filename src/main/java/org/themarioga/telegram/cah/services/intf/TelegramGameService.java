@@ -39,6 +39,8 @@ public interface TelegramGameService {
 
     List<TelegramPlayer> getPlayers(Game game);
 
+    void deletePlayer(TelegramPlayer telegramPlayer);
+
     /**
      * Borra las filas de Telegram de una partida terminada. No toca la partida en el motor.
      */
