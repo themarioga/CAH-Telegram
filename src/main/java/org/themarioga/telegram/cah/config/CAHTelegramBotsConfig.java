@@ -56,15 +56,17 @@ public class CAHTelegramBotsConfig {
     @Bean("cclhBotMessageService")
     @ConditionalOnProperty(prefix = "cclh.bot", name = "enabled", havingValue = "true")
     public BotMessageService cclhBotMessageService(@Qualifier("cclhTelegramClient") TelegramClient client,
+                                                   PendingReplyRegistry pendingReplies,
                                                    @Value("${cclh.bot.name}") String name) {
-        return new BotMessageServiceImpl(client, name);
+        return new BotMessageServiceImpl(client, name, pendingReplies);
     }
 
     @Bean("dictionariesBotMessageService")
     @ConditionalOnProperty(prefix = "dictionaries.bot", name = "enabled", havingValue = "true")
     public BotMessageService dictionariesBotMessageService(@Qualifier("dictionariesTelegramClient") TelegramClient client,
+                                                   PendingReplyRegistry pendingReplies,
                                                            @Value("${dictionaries.bot.name}") String name) {
-        return new BotMessageServiceImpl(client, name);
+        return new BotMessageServiceImpl(client, name, pendingReplies);
     }
 
     @Configuration
