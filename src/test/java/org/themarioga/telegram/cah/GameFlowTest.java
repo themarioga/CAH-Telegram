@@ -1,0 +1,266 @@
+package org.themarioga.telegram.cah;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.themarioga.commons.engine.enums.GameStatusEnum;
+import org.themarioga.commons.engine.models.Room;
+import org.themarioga.commons.engine.models.User;
+import org.themarioga.engine.cah.enums.CardTypeEnum;
+import org.themarioga.engine.cah.enums.RoundStatusEnum;
+import org.themarioga.engine.cah.enums.VotationModeEnum;
+import org.themarioga.engine.cah.models.dictionaries.Card;
+import org.themarioga.engine.cah.models.dictionaries.Dictionary;
+import org.themarioga.engine.cah.models.game.Game;
+import org.themarioga.engine.cah.models.game.PlayerHandCard;
+import org.themarioga.engine.cah.services.intf.CAHService;
+import org.themarioga.engine.cah.services.intf.dictionaries.CardService;
+import org.themarioga.engine.cah.services.intf.dictionaries.DictionaryService;
+import org.themarioga.engine.cah.config.GameConfig;
+import org.themarioga.engine.cah.services.intf.game.GameService;
+import org.themarioga.telegram.cah.game.service.intf.CCLHTelegramService;
+import org.themarioga.telegram.cah.support.BotFlowTest;
+import org.themarioga.telegram.cah.support.RecordingBotMessageService;
+
+import java.util.List;
+
+/**
+ * Ejercita el bot de juego contra la base de datos: crear partida en un grupo, unirse, arrancar y
+ * jugar una ronda. Es la parte con más riesgo del porte, porque trabaja sobre dos chats a la vez.
+ */
+class GameFlowTest extends BotFlowTest {
+
+    private static final long GROUP_CHAT = -100500L;
+    private static final long CREATOR = 500L;
+    private static final long PLAYER_TWO = 501L;
+    private static final long PLAYER_THREE = 502L;
+
+    @Autowired
+    private CCLHTelegramService game;
+    @Autowired
+    private CAHService cahService;
+    @Autowired
+    private GameService gameService;
+    @Autowired
+    private DictionaryService dictionaryService;
+    @Autowired
+    private CardService cardService;
+    @Autowired
+    private GameConfig gameConfig;
+
+    private final RecordingBotMessageService messages = CCLH_MESSAGES;
+
+    private User creator;
+
+    @BeforeEach
+    void setUp() {
+        creator = givenRegisteredUser(CREATOR, "creador");
+        givenRegisteredUser(PLAYER_TWO, "segundo");
+        givenRegisteredUser(PLAYER_THREE, "tercero");
+
+        givenAPlayableDictionary();
+
+        messages.clear();
+    }
+
+    @Test
+    void creatingAGameWritesToTheGroupAndToTheCreator() {
+        createGame();
+
+        Assertions.assertFalse(messages.sentTo(GROUP_CHAT).isEmpty(), "el grupo tiene que enterarse");
+        Assertions.assertFalse(messages.sentTo(CREATOR).isEmpty(), "y el creador por privado");
+
+        Game created = gameService.getByRoom(room());
+        Assertions.assertNotNull(created);
+        Assertions.assertEquals(GameStatusEnum.CREATED, created.getStatus());
+        Assertions.assertEquals(1, created.getPlayers().size(), "el creador entra ya como jugador");
+    }
+
+    @Test
+    void theGroupMenuOffersJoiningAndConfiguring() {
+        createGame();
+
+        RecordingBotMessageService.Sent groupMenu = messages.lastTo(GROUP_CHAT);
+        Assertions.assertNotNull(groupMenu);
+        Assertions.assertTrue(groupMenu.callbackData().contains("game_join"));
+        Assertions.assertTrue(groupMenu.callbackData().contains("game_configure"));
+        Assertions.assertFalse(groupMenu.callbackData().contains("game_start"),
+                "con un solo jugador todavía no se puede empezar");
+    }
+
+    @Test
+    void othersJoinAndThenTheGameCanStart() {
+        createGame();
+        joinAs(PLAYER_TWO);
+        joinAs(PLAYER_THREE);
+
+        Assertions.assertEquals(3, gameService.getByRoom(room()).getPlayers().size());
+
+        logInAs(CREATOR, GROUP_CHAT, "group");
+        messages.clear();
+        game.gameMenuQuery(GROUP_CHAT, "cb");
+
+        Assertions.assertTrue(messages.lastTo(GROUP_CHAT).callbackData().contains("game_start"),
+                "con tres jugadores ya se puede empezar");
+    }
+
+    @Test
+    void onlyTheCreatorConfiguresTheGame() {
+        createGame();
+        joinAs(PLAYER_TWO);
+
+        logInAsCallback(PLAYER_TWO, GROUP_CHAT, "group");
+        messages.clear();
+        game.gameConfigureQuery(GROUP_CHAT, "cb");
+
+        Assertions.assertFalse(messages.answeredCallbacks().isEmpty(),
+                "al que no es creador hay que contestarle a la pulsación");
+        Assertions.assertFalse(messages.answeredCallbacks().get(0).startsWith("ERROR_"),
+                "el aviso no está traducido");
+    }
+
+    /**
+     * El reparto: la carta negra va al grupo y la mano de cada jugador a su privado.
+     */
+    @Test
+    void startingDealsTheBlackCardAndEveryHand() {
+        startedGame();
+
+        Game started = gameService.getByRoom(room());
+        Assertions.assertEquals(GameStatusEnum.STARTED, started.getStatus());
+        Assertions.assertNotNull(started.getCurrentRound());
+        Assertions.assertEquals(RoundStatusEnum.PLAYING, started.getCurrentRound().getStatus());
+
+        Assertions.assertFalse(messages.sentTo(GROUP_CHAT).isEmpty(), "la carta negra va al grupo");
+
+        for (long player : List.of(CREATOR, PLAYER_TWO, PLAYER_THREE)) {
+            RecordingBotMessageService.Sent hand = messages.lastTo(player);
+            Assertions.assertNotNull(hand, () -> "el jugador " + player + " no ha recibido su mano");
+            Assertions.assertFalse(hand.callbackData().isEmpty(), "la mano son botones de jugar carta");
+            Assertions.assertTrue(hand.callbackData().get(0).startsWith("play_card__"));
+        }
+    }
+
+    /**
+     * En modo democracia juegan todos, incluido el presidente de la ronda.
+     */
+    @Test
+    void aFullRoundIsPlayedAndVoted() {
+        Game started = startedGame();
+
+        for (long player : List.of(CREATOR, PLAYER_TWO, PLAYER_THREE)) {
+            playFirstCardAs(player);
+        }
+
+        Game voting = gameService.getByRoom(room());
+        Assertions.assertEquals(RoundStatusEnum.VOTING, voting.getCurrentRound().getStatus(),
+                "cuando juegan todos, la ronda pasa a votación");
+        Assertions.assertEquals(3, voting.getCurrentRound().getPlayedCards().size());
+    }
+
+    @Test
+    void playingTwiceIsRefusedWithAnExplanation() {
+        startedGame();
+
+        playFirstCardAs(CREATOR);
+        messages.clear();
+
+        logInAsCallback(CREATOR, CREATOR, "private");
+        Game current = gameService.getByRoom(room());
+        Card alreadyPlayed = current.getCurrentRound().getPlayedCards().get(0).getCard();
+
+        game.playerPlayCardQuery("cb", alreadyPlayed.getId().toString());
+
+        Assertions.assertFalse(messages.answeredCallbacks().isEmpty(), "hay que decirle que ya jugó");
+        Assertions.assertFalse(messages.answeredCallbacks().get(0).startsWith("ERROR_"));
+    }
+
+    @Test
+    void deletingTheGameCleansUpItsMessages() {
+        startedGame();
+        messages.clear();
+
+        logInAs(CREATOR, GROUP_CHAT, "group");
+        game.gameDeleteGroupQuery(GROUP_CHAT, "cb");
+
+        Assertions.assertNull(gameService.getByRoom(room()), "la partida tiene que desaparecer");
+        Assertions.assertTrue(messages.deletedFrom().containsAll(List.of(CREATOR, PLAYER_TWO, PLAYER_THREE)),
+                "hay que borrar la mano de cada jugador de su privado");
+    }
+
+    // ///////////// Apoyo //////////////////
+
+    private Room room() {
+        return roomResolver.resolveRoom(GROUP_CHAT, "Grupo de pruebas");
+    }
+
+    private void createGame() {
+        logInAs(CREATOR, GROUP_CHAT, "group");
+
+        game.startCreatingGame(GROUP_CHAT, "Grupo de pruebas");
+    }
+
+    private void joinAs(long telegramId) {
+        logInAs(telegramId, GROUP_CHAT, "group");
+
+        game.gameJoinQuery(GROUP_CHAT, "cb");
+    }
+
+    private Game startedGame() {
+        createGame();
+        joinAs(PLAYER_TWO);
+        joinAs(PLAYER_THREE);
+
+        logInAs(CREATOR, GROUP_CHAT, "group");
+        // En democracia juegan todos, que es lo que hace el test predecible
+        cahService.setVotationMode(room(), VotationModeEnum.DEMOCRACY);
+
+        messages.clear();
+        game.gameStartQuery(GROUP_CHAT, "cb");
+
+        return gameService.getByRoom(room());
+    }
+
+    private void playFirstCardAs(long telegramId) {
+        logInAs(telegramId, telegramId, "private");
+
+        Game current = gameService.getByRoom(room());
+        var player = current.getPlayers().stream()
+                .filter(p -> p.getUser().getUsername().equals("u" + telegramId)
+                        || p.getUser().getUsername().equals(aliasOf(telegramId)))
+                .findFirst().orElseThrow();
+
+        List<PlayerHandCard> hand = player.getHand();
+        Assertions.assertFalse(hand.isEmpty(), "el jugador no tiene cartas en la mano");
+
+        game.playerPlayCardQuery("cb", hand.get(0).getCard().getId().toString());
+    }
+
+    private String aliasOf(long telegramId) {
+        if (telegramId == CREATOR) return "creador";
+        if (telegramId == PLAYER_TWO) return "segundo";
+
+        return "tercero";
+    }
+
+    /**
+     * El motor exige un diccionario publicado con cartas suficientes para poder jugar.
+     */
+    private void givenAPlayableDictionary() {
+        Dictionary dictionary = dictionaryService.create("Diccionario de pruebas", creator);
+
+        for (int i = 0; i < 60; i++) {
+            cardService.create(dictionary, CardTypeEnum.WHITE, "Carta blanca " + i);
+        }
+        for (int i = 0; i < 15; i++) {
+            cardService.create(dictionary, CardTypeEnum.BLACK, "Carta negra " + i);
+        }
+
+        dictionaryService.togglePublished(dictionary);
+
+        // Es con el que arrancan las partidas que no eligen otro
+        gameConfig.setDefaultDictionaryId(dictionary.getId());
+    }
+
+}

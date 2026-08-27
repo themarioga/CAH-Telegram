@@ -42,7 +42,7 @@ public class TelegramGameServiceImpl implements TelegramGameService {
         telegramGame.setFirstMessageId(firstMessageId);
         telegramGame.setCreatorMessageId(creatorMessageId);
 
-        return telegramGameDao.createOrUpdate(telegramGame);
+        return telegramGameDao.create(telegramGame);
     }
 
     @Override
@@ -86,7 +86,7 @@ public class TelegramGameServiceImpl implements TelegramGameService {
         telegramPlayer.setPlayer(player);
         telegramPlayer.setHandMessageId(handMessageId);
 
-        return telegramPlayerDao.createOrUpdate(telegramPlayer);
+        return telegramPlayerDao.create(telegramPlayer);
     }
 
     @Override

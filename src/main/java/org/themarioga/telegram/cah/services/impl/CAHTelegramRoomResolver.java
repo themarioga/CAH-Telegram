@@ -48,7 +48,7 @@ public class CAHTelegramRoomResolver implements TelegramRoomResolver {
             telegramRoom.setId(chatId);
             telegramRoom.setRoom(room);
 
-            return telegramRoomDao.createOrUpdate(telegramRoom).getRoom();
+            return telegramRoomDao.create(telegramRoom).getRoom();
         }
 
         Room room = telegramRoom.getRoom();

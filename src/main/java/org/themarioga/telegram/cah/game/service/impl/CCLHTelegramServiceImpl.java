@@ -218,7 +218,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
             Game game = cahService.createGame(room);
 
             TelegramGame telegramGame = telegramGameService.create(game, groupMessageId, creatorMessageId);
-            telegramGameService.createPlayer(game.getPlayers().get(0), playerMessageId);
+            telegramGameService.createPlayer(playerOf(game, requireSession()), playerMessageId);
 
             sendMainMenu(telegramGame);
             sendCreatorPrivateMenu(telegramGame);
