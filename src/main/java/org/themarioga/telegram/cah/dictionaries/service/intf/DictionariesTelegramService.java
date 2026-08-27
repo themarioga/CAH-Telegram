@@ -7,6 +7,9 @@ import java.util.UUID;
  * <p>
  * Sustituye a {@code DictionariesBotService}. Los identificadores son {@link UUID} porque es lo que
  * usa el motor desde el refactor; antes eran {@code long}.
+ * <p>
+ * Los parámetros llamados {@code selection} son lo que ha tecleado el usuario: el número corto que
+ * el bot le enseñó en la lista, o un identificador completo (que es lo que llevan los botones).
  */
 public interface DictionariesTelegramService {
 
@@ -40,29 +43,29 @@ public interface DictionariesTelegramService {
 
     void renameDictionaryMessage(int messageId);
 
-    void selectDictionaryToRename(int messageId, UUID dictionaryId);
+    void selectDictionaryToRename(int messageId, String selection);
 
     void renameDictionary(UUID dictionaryId, String newName);
 
     void changeDictionaryLangMessage(int messageId);
 
-    void selectDictionaryToChangeLang(int messageId, UUID dictionaryId);
+    void selectDictionaryToChangeLang(int messageId, String selection);
 
     void changeDictionaryLang(UUID dictionaryId, String language);
 
     void deleteDictionaryMessage(int messageId);
 
-    void selectDictionaryToDelete(int messageId, UUID dictionaryId);
+    void selectDictionaryToDelete(int messageId, String selection);
 
     void deleteDictionary(UUID dictionaryId, String text);
 
     void toggleDictionaryMessage(int messageId);
 
-    void toggleDictionary(int messageId, UUID dictionaryId);
+    void toggleDictionary(int messageId, String selection);
 
     void shareDictionaryMessage(int messageId);
 
-    void requestShareDictionary(int messageId, UUID dictionaryId);
+    void requestShareDictionary(int messageId, String selection);
 
     void acceptShareDictionary(int messageId, UUID dictionaryId);
 
@@ -72,7 +75,7 @@ public interface DictionariesTelegramService {
 
     void manageCardsMessage(int messageId);
 
-    void selectDictionaryToManageCards(Integer messageId, UUID dictionaryId);
+    void selectDictionaryToManageCards(Integer messageId, String selection);
 
     void listWhiteCardsMessage(int messageId, UUID dictionaryId);
 
@@ -82,13 +85,13 @@ public interface DictionariesTelegramService {
 
     void editWhiteCardsMessage(int messageId, UUID dictionaryId);
 
-    void editWhiteCardSelect(UUID dictionaryId, UUID cardId);
+    void editWhiteCardSelect(UUID dictionaryId, String cardSelection);
 
     void editWhiteCard(UUID cardId, String newText);
 
     void deleteWhiteCardsMessage(int messageId, UUID dictionaryId);
 
-    void deleteWhiteCard(UUID dictionaryId, UUID cardId);
+    void deleteWhiteCard(UUID dictionaryId, String cardSelection);
 
     void listBlackCardsMessage(int messageId, UUID dictionaryId);
 
@@ -98,19 +101,19 @@ public interface DictionariesTelegramService {
 
     void editBlackCardsMessage(int messageId, UUID dictionaryId);
 
-    void editBlackCardSelect(UUID dictionaryId, UUID cardId);
+    void editBlackCardSelect(UUID dictionaryId, String cardSelection);
 
     void editBlackCard(UUID cardId, String newText);
 
     void deleteBlackCardsMessage(int messageId, UUID dictionaryId);
 
-    void deleteBlackCard(UUID dictionaryId, UUID cardId);
+    void deleteBlackCard(UUID dictionaryId, String cardSelection);
 
     // ///////////// Colaboradores //////////////////
 
     void manageCollaboratorsMessage(int messageId);
 
-    void selectDictionaryToManageCollaborators(Integer messageId, UUID dictionaryId);
+    void selectDictionaryToManageCollaborators(Integer messageId, String selection);
 
     void listCollaboratorsMessage(int messageId, UUID dictionaryId);
 

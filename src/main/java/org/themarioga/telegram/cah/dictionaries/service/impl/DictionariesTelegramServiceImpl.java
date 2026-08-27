@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ import org.themarioga.commons.engine.util.StringUtils;
 import org.themarioga.commons.telegram.config.TelegramAdmins;
 import org.themarioga.commons.telegram.models.TelegramUser;
 import org.themarioga.commons.telegram.security.TelegramSecurityUtils;
+import org.themarioga.commons.telegram.services.impl.SelectionRegistry;
 import org.themarioga.commons.telegram.services.intf.BotMessageService;
 import org.themarioga.commons.telegram.services.intf.TelegramUserService;
 import org.themarioga.commons.telegram.util.TelegramUserUtils;
@@ -41,6 +43,7 @@ import org.themarioga.engine.cah.services.intf.dictionaries.DictionaryService;
 import org.themarioga.telegram.cah.config.BotProperties;
 import org.themarioga.telegram.cah.config.ErrorMessageResolver;
 import org.themarioga.telegram.cah.dictionaries.service.intf.DictionariesTelegramService;
+import org.themarioga.telegram.cah.exceptions.SelectionNotFoundException;
 
 import java.text.MessageFormat;
 import java.util.List;
@@ -82,6 +85,8 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
     private final DictionariesConfig dictionariesConfig;
     private final BotProperties botProperties;
     private final TelegramAdmins admins;
+    private final SelectionRegistry selectionRegistry;
+    private final String botName;
 
     @Autowired
     public DictionariesTelegramServiceImpl(@Qualifier("dictionariesBotMessageService") BotMessageService botMessageService,
@@ -89,7 +94,8 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
                                            UserService userService, TelegramUserService telegramUserService,
                                            I18NService i18NService, ErrorMessageResolver errorMessageResolver,
                                            DictionariesConfig dictionariesConfig, BotProperties botProperties,
-                                           TelegramAdmins admins) {
+                                           TelegramAdmins admins, SelectionRegistry selectionRegistry,
+                                           @Value("${dictionaries.bot.name}") String botName) {
         this.botMessageService = botMessageService;
         this.dictionaryService = dictionaryService;
         this.cardService = cardService;
@@ -100,6 +106,8 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
         this.dictionariesConfig = dictionariesConfig;
         this.botProperties = botProperties;
         this.admins = admins;
+        this.selectionRegistry = selectionRegistry;
+        this.botName = botName;
     }
 
     // ///////////// Usuario //////////////////
@@ -206,10 +214,11 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     @Override
     @Transactional(propagation = Propagation.SUPPORTS)
-    public void selectDictionaryToRename(int messageId, UUID dictionaryId) {
+    public void selectDictionaryToRename(int messageId, String selection) {
         requireSession();
 
         guarded(() -> {
+            UUID dictionaryId = resolveSelection(selection);
             Dictionary dictionary = getDictionaryAndCheckCreator(dictionaryId);
             checkNotShared(dictionary);
 
@@ -239,10 +248,11 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     @Override
     @Transactional(propagation = Propagation.SUPPORTS)
-    public void selectDictionaryToChangeLang(int messageId, UUID dictionaryId) {
+    public void selectDictionaryToChangeLang(int messageId, String selection) {
         requireSession();
 
         guarded(() -> {
+            UUID dictionaryId = resolveSelection(selection);
             Dictionary dictionary = getDictionaryAndCheckCreator(dictionaryId);
             checkNotShared(dictionary);
 
@@ -272,10 +282,11 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
-    public void selectDictionaryToDelete(int messageId, UUID dictionaryId) {
+    public void selectDictionaryToDelete(int messageId, String selection) {
         requireSession();
 
         guarded(() -> {
+            UUID dictionaryId = resolveSelection(selection);
             Dictionary dictionary = getDictionaryAndCheckCreator(dictionaryId);
 
             if (Boolean.TRUE.equals(dictionary.getShared())) {
@@ -322,10 +333,11 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
-    public void toggleDictionary(int messageId, UUID dictionaryId) {
+    public void toggleDictionary(int messageId, String selection) {
         requireSession();
 
         guarded(() -> {
+            UUID dictionaryId = resolveSelection(selection);
             Dictionary dictionary = getDictionaryAndCheckCreator(dictionaryId);
 
             if (Boolean.TRUE.equals(dictionary.getShared())) {
@@ -348,10 +360,11 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     @Override
     @Transactional(propagation = Propagation.SUPPORTS)
-    public void requestShareDictionary(int messageId, UUID dictionaryId) {
+    public void requestShareDictionary(int messageId, String selection) {
         requireSession();
 
         guarded(() -> {
+            UUID dictionaryId = resolveSelection(selection);
             Dictionary dictionary = getDictionaryAndCheckCreator(dictionaryId);
 
             if (Boolean.FALSE.equals(dictionary.getPublished())) {
@@ -420,10 +433,11 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     @Override
     @Transactional(propagation = Propagation.SUPPORTS)
-    public void selectDictionaryToManageCards(Integer messageId, UUID dictionaryId) {
+    public void selectDictionaryToManageCards(Integer messageId, String selection) {
         requireSession();
 
         guarded(() -> {
+            UUID dictionaryId = resolveSelection(selection);
             Dictionary dictionary = getEditableDictionary(dictionaryId);
 
             if (messageId == null) {
@@ -484,14 +498,14 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     @Override
     @Transactional(propagation = Propagation.SUPPORTS)
-    public void editWhiteCardSelect(UUID dictionaryId, UUID cardId) {
-        selectCardToEdit(dictionaryId, cardId, CardTypeEnum.WHITE);
+    public void editWhiteCardSelect(UUID dictionaryId, String cardSelection) {
+        selectCardToEdit(dictionaryId, cardSelection, CardTypeEnum.WHITE);
     }
 
     @Override
     @Transactional(propagation = Propagation.SUPPORTS)
-    public void editBlackCardSelect(UUID dictionaryId, UUID cardId) {
-        selectCardToEdit(dictionaryId, cardId, CardTypeEnum.BLACK);
+    public void editBlackCardSelect(UUID dictionaryId, String cardSelection) {
+        selectCardToEdit(dictionaryId, cardSelection, CardTypeEnum.BLACK);
     }
 
     @Override
@@ -520,14 +534,14 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
-    public void deleteWhiteCard(UUID dictionaryId, UUID cardId) {
-        deleteCard(dictionaryId, cardId, CardTypeEnum.WHITE);
+    public void deleteWhiteCard(UUID dictionaryId, String cardSelection) {
+        deleteCard(dictionaryId, cardSelection, CardTypeEnum.WHITE);
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
-    public void deleteBlackCard(UUID dictionaryId, UUID cardId) {
-        deleteCard(dictionaryId, cardId, CardTypeEnum.BLACK);
+    public void deleteBlackCard(UUID dictionaryId, String cardSelection) {
+        deleteCard(dictionaryId, cardSelection, CardTypeEnum.BLACK);
     }
 
     // ///////////// Colaboradores //////////////////
@@ -540,10 +554,11 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     @Override
     @Transactional(propagation = Propagation.SUPPORTS)
-    public void selectDictionaryToManageCollaborators(Integer messageId, UUID dictionaryId) {
+    public void selectDictionaryToManageCollaborators(Integer messageId, String selection) {
         requireSession();
 
         guarded(() -> {
+            UUID dictionaryId = resolveSelection(selection);
             Dictionary dictionary = getDictionaryAndCheckCreator(dictionaryId);
 
             if (messageId == null) {
@@ -758,13 +773,13 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
         }, publishedOverride());
     }
 
-    private void selectCardToEdit(UUID dictionaryId, UUID cardId, CardTypeEnum type) {
+    private void selectCardToEdit(UUID dictionaryId, String cardSelection, CardTypeEnum type) {
         requireSession();
 
         guarded(() -> {
             getEditableDictionary(dictionaryId);
 
-            askFor(command(type, "edit") + "__" + cardId, i18NService.get(tag(type, "CARD_EDIT_NEW_TEXT")));
+            askFor(command(type, "edit") + "__" + resolveSelection(cardSelection), i18NService.get(tag(type, "CARD_EDIT_NEW_TEXT")));
         }, publishedOverride());
     }
 
@@ -789,13 +804,13 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
                 override(DictionaryAlreadySharedException.class, () -> i18NService.get("ERROR_DICTIONARY_SHARED")));
     }
 
-    private void deleteCard(UUID dictionaryId, UUID cardId, CardTypeEnum type) {
+    private void deleteCard(UUID dictionaryId, String cardSelection, CardTypeEnum type) {
         requireSession();
 
         guarded(() -> {
             Dictionary dictionary = getEditableDictionary(dictionaryId);
 
-            Card card = cardService.getCardById(cardId);
+            Card card = cardService.getCardById(resolveSelection(cardSelection));
             if (card == null || !card.getDictionary().getId().equals(dictionary.getId()))
                 throw new CardDoesntExistsException();
 
@@ -1073,23 +1088,29 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
         return format("DICTIONARIES_LIST", getDictionaryList(dictionaries));
     }
 
+    /**
+     * Pinta la lista numerada y recuerda el orden, para que el usuario pueda contestar "3" en vez de
+     * copiar un identificador de 36 caracteres.
+     */
     private String getDictionaryList(List<Dictionary> dictionaries) {
+        selectionRegistry.remember(botName, chatId(), dictionaries.stream().map(Dictionary::getId).toList());
+
+        UUID currentUserId = requireSession().getId();
         StringBuilder builder = new StringBuilder();
-        for (Dictionary dictionary : dictionaries) {
-            builder.append(getDictionaryInfo(dictionary));
+        for (int i = 0; i < dictionaries.size(); i++) {
+            Dictionary dictionary = dictionaries.get(i);
+
+            builder.append(format("DICTIONARY_INFO", i + 1, dictionary.getName(),
+                    yesOrNo(Objects.equals(dictionary.getCreator().getId(), currentUserId)),
+                    yesOrNo(dictionary.getPublished()), yesOrNo(dictionary.getShared()),
+                    dictionary.getLang().getName())).append("\n");
         }
 
         return builder.toString();
     }
 
-    private String getDictionaryInfo(Dictionary dictionary) {
-        return dictionary.getId() + " - " + dictionary.getName() + " (" +
-                "<b>tuyo:</b> " + StringUtils.booleanToSpanish(
-                        Objects.equals(dictionary.getCreator().getId(), requireSession().getId())) +
-                "; <b>publicado:</b> " + StringUtils.booleanToSpanish(dictionary.getPublished()) +
-                "; <b>compartido:</b> " + StringUtils.booleanToSpanish(dictionary.getShared()) +
-                "; <b>idioma:</b> " + dictionary.getLang().getName() +
-                ")\n";
+    private String yesOrNo(Boolean value) {
+        return i18NService.get(Boolean.TRUE.equals(value) ? "YES" : "NO");
     }
 
     private String getCollaboratorListMessage(List<DictionaryCollaborator> collaborators) {
@@ -1101,13 +1122,11 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
                 .toList();
 
         if (others.isEmpty()) {
-            builder.append("\n").append("No hay colaboradores.").append("\n");
+            builder.append("\n").append(i18NService.get("COLLABORATORS_LIST_EMPTY")).append("\n");
         } else {
             for (DictionaryCollaborator collaborator : others) {
-                builder.append(collaborator.getUser().getName())
-                        .append(" (aceptado: ").append(StringUtils.booleanToSpanish(collaborator.getAccepted()))
-                        .append(", activo: ").append(StringUtils.booleanToSpanish(collaborator.getCanEdit()))
-                        .append(")\n");
+                builder.append(format("COLLABORATOR_INFO", collaborator.getUser().getName(),
+                        yesOrNo(collaborator.getAccepted()), yesOrNo(collaborator.getCanEdit()))).append("\n");
             }
         }
 
@@ -1115,21 +1134,35 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
     }
 
     private void sendCardList(Dictionary dictionary, CardTypeEnum type) {
-        StringBuilder builder = new StringBuilder();
+        List<Card> cards = cardService.findCardsByDictionaryAndType(dictionary, type);
 
-        for (Card card : cardService.findCardsByDictionaryAndType(dictionary, type)) {
+        selectionRegistry.remember(botName, chatId(), cards.stream().map(Card::getId).toList());
+
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < cards.size(); i++) {
             // Telegram corta los mensajes largos, así que se trocea
             if (builder.length() > 4000) {
                 botMessageService.sendMessage(chatId(), builder.toString());
                 builder = new StringBuilder();
             }
 
-            builder.append(card.getId()).append(" - ").append(card.getText()).append("\n");
+            builder.append(format("CARD_INFO", i + 1, cards.get(i).getText())).append("\n");
         }
 
         if (!builder.isEmpty()) {
             botMessageService.sendMessage(chatId(), builder.toString());
         }
+    }
+
+    /**
+     * Traduce lo que ha contestado el usuario (el número de la lista, o un identificador completo)
+     * al identificador del motor.
+     */
+    private UUID resolveSelection(String input) {
+        UUID id = selectionRegistry.resolve(botName, chatId(), input);
+        if (id == null) throw new SelectionNotFoundException();
+
+        return id;
     }
 
     private String changeDictionariesLanguageListMessage() {

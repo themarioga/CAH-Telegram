@@ -22,7 +22,7 @@ import java.util.List;
 class SchemaBaselineTest {
 
     /** Textos recuperados de las migraciones antiguas, más los ocho que hubo que escribir. */
-    private static final int EXPECTED_TAGS = 184;
+    private static final int EXPECTED_TAGS = 191;
 
     @Autowired
     private LanguageService languageService;
@@ -84,6 +84,23 @@ class SchemaBaselineTest {
                         () -> "falta el tag " + tag + " en " + lang);
             }
         }
+    }
+
+    /**
+     * Los textos que antes estaban en castellano dentro del código: si vuelven a escribirse en duro,
+     * un usuario en inglés los ve en castellano.
+     */
+    @Test
+    void theTextsThatUsedToBeHardcodedAreTags() {
+        for (String tag : List.of("DICTIONARY_INFO", "COLLABORATOR_INFO", "COLLABORATORS_LIST_EMPTY",
+                "CARD_INFO", "YES", "NO", "ERROR_SELECTION_INVALID")) {
+            for (String lang : List.of("es", "en")) {
+                Assertions.assertNotEquals(tag, i18NService.get(tag, lang), () -> "falta " + tag + " en " + lang);
+            }
+        }
+
+        Assertions.assertEquals("Sí", i18NService.get("YES", "es"));
+        Assertions.assertEquals("Yes", i18NService.get("YES", "en"));
     }
 
     /**

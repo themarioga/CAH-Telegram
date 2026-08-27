@@ -124,7 +124,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.selectDictionaryToRename(message.getMessageId(), UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.selectDictionaryToRename(message.getMessageId(), message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -160,7 +160,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.selectDictionaryToChangeLang(message.getMessageId(), UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.selectDictionaryToChangeLang(message.getMessageId(), message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -196,7 +196,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.selectDictionaryToDelete(message.getMessageId(), UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.selectDictionaryToDelete(message.getMessageId(), message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -232,7 +232,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.toggleDictionary(message.getMessageId(), UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.toggleDictionary(message.getMessageId(), message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -250,7 +250,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.requestShareDictionary(message.getMessageId(), UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.requestShareDictionary(message.getMessageId(), message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -268,7 +268,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.selectDictionaryToManageCards(null, UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.selectDictionaryToManageCards(null, message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -304,7 +304,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.editWhiteCardSelect(UUID.fromString(data), UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.editWhiteCardSelect(UUID.fromString(data), message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -340,7 +340,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.deleteWhiteCard(UUID.fromString(data), UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.deleteWhiteCard(UUID.fromString(data), message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -376,7 +376,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.editBlackCardSelect(UUID.fromString(data), UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.editBlackCardSelect(UUID.fromString(data), message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -412,7 +412,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.deleteBlackCard(UUID.fromString(data), UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.deleteBlackCard(UUID.fromString(data), message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -430,7 +430,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(message.getFrom().getId());
 
-                dictionariesTelegramService.selectDictionaryToManageCollaborators(null, UUID.fromString(message.getText().trim()));
+                dictionariesTelegramService.selectDictionaryToManageCollaborators(null, message.getText().trim());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -651,7 +651,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                dictionariesTelegramService.selectDictionaryToManageCards(callbackQuery.getMessage().getMessageId(), UUID.fromString(data));
+                dictionariesTelegramService.selectDictionaryToManageCards(callbackQuery.getMessage().getMessageId(), data);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -771,7 +771,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                dictionariesTelegramService.selectDictionaryToManageCollaborators(callbackQuery.getMessage().getMessageId(), UUID.fromString(data));
+                dictionariesTelegramService.selectDictionaryToManageCollaborators(callbackQuery.getMessage().getMessageId(), data);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
