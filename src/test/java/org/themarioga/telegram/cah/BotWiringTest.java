@@ -41,6 +41,9 @@ class BotWiringTest {
     @Autowired
     private ApplicationContext context;
 
+    /**
+     * El de diccionarios ya es el real (F5); el del bot de juego llega en F6.
+     */
     @TestConfiguration
     static class StubApplicationServices {
 
@@ -62,11 +65,6 @@ class BotWiringTest {
 
         @Bean("cclhBotApplicationService")
         ApplicationService cclhBotApplicationService() {
-            return empty();
-        }
-
-        @Bean("dictionariesBotApplicationService")
-        ApplicationService dictionariesBotApplicationService() {
             return empty();
         }
 
