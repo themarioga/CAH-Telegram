@@ -4,17 +4,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
 import org.telegram.telegrambots.longpolling.TelegramBotsLongPollingApplication;
 import org.telegram.telegrambots.longpolling.starter.SpringLongPollingBot;
-import org.themarioga.commons.telegram.models.CallbackQueryHandler;
-import org.themarioga.commons.telegram.models.CommandHandler;
 import org.themarioga.commons.telegram.services.impl.AuthUpdateInterceptor;
-import org.themarioga.commons.telegram.services.intf.ApplicationService;
-
-import java.util.Map;
 
 /**
  * Comprueba que los dos bots se cablean y arrancan de verdad.
@@ -40,35 +33,6 @@ class BotWiringTest {
 
     @Autowired
     private ApplicationContext context;
-
-    /**
-     * El de diccionarios ya es el real (F5); el del bot de juego llega en F6.
-     */
-    @TestConfiguration
-    static class StubApplicationServices {
-
-        private static ApplicationService empty() {
-            return new ApplicationService() {
-
-                @Override
-                public Map<String, CommandHandler> getBotCommands() {
-                    return Map.of();
-                }
-
-                @Override
-                public Map<String, CallbackQueryHandler> getCallbackQueries() {
-                    return Map.of();
-                }
-
-            };
-        }
-
-        @Bean("cclhBotApplicationService")
-        ApplicationService cclhBotApplicationService() {
-            return empty();
-        }
-
-    }
 
     @Test
     void bothBotsAreRegisteredInLongPolling() {

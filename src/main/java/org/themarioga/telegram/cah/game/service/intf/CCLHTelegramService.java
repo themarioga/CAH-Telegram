@@ -62,6 +62,12 @@ public interface CCLHTelegramService {
 
     void gameStartQuery(long chatId, String callbackQueryId);
 
+    // ///////////// Ronda //////////////////
+
+    void playerPlayCardQuery(String callbackQueryId, String data);
+
+    void playerVoteCardQuery(String callbackQueryId, String data);
+
     // ///////////// Borrado //////////////////
 
     /**
@@ -71,6 +77,18 @@ public interface CCLHTelegramService {
     void gameDeleteGroupQuery(long chatId, String callbackQueryId);
 
     void gameDeletePrivateQuery(String callbackQueryId);
+
+    // ///////////// Administración //////////////////
+
+    void deleteMyGames();
+
+    void deleteGameByCreatorUsername(String username);
+
+    void deleteAllGames();
+
+    void sendMessageToEveryone(String message);
+
+    void toggleGlobalMessages();
 
     // ///////////// Ayuda //////////////////
 

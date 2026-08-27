@@ -22,7 +22,7 @@ import java.util.List;
 class SchemaBaselineTest {
 
     /** Textos recuperados de las migraciones antiguas, más los ocho que hubo que escribir. */
-    private static final int EXPECTED_TAGS = 191;
+    private static final int EXPECTED_TAGS = 193;
 
     @Autowired
     private LanguageService languageService;
