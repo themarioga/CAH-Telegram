@@ -1,0 +1,600 @@
+package org.themarioga.telegram.cah.game.service.impl;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
+import org.themarioga.commons.engine.enums.GameStatusEnum;
+import org.themarioga.commons.engine.exceptions.ApplicationException;
+import org.themarioga.commons.engine.exceptions.game.GameDoesntExistsException;
+import org.themarioga.commons.engine.exceptions.game.GameOnlyCreatorCanPerformActionException;
+import org.themarioga.commons.engine.exceptions.user.UserAlreadyExistsException;
+import org.themarioga.commons.engine.exceptions.user.UserDoesntExistsException;
+import org.themarioga.commons.engine.models.Lang;
+import org.themarioga.commons.engine.models.Room;
+import org.themarioga.commons.engine.models.User;
+import org.themarioga.commons.engine.security.SecurityUtils;
+import org.themarioga.commons.engine.services.intf.I18NService;
+import org.themarioga.commons.engine.services.intf.UserService;
+import org.themarioga.commons.telegram.models.TelegramUser;
+import org.themarioga.commons.telegram.security.TelegramSecurityUtils;
+import org.themarioga.commons.telegram.security.TelegramSession;
+import org.themarioga.commons.telegram.services.intf.BotMessageService;
+import org.themarioga.commons.telegram.services.intf.TelegramRoomResolver;
+import org.themarioga.commons.telegram.services.intf.TelegramUserService;
+import org.themarioga.engine.cah.config.GameConfig;
+import org.themarioga.engine.cah.enums.PunctuationModeEnum;
+import org.themarioga.engine.cah.enums.VotationModeEnum;
+import org.themarioga.engine.cah.models.dictionaries.Dictionary;
+import org.themarioga.engine.cah.models.game.Game;
+import org.themarioga.engine.cah.models.game.Player;
+import org.themarioga.engine.cah.services.intf.CAHService;
+import org.themarioga.engine.cah.services.intf.dictionaries.DictionaryService;
+import org.themarioga.engine.cah.services.intf.game.GameService;
+import org.themarioga.telegram.cah.config.BotProperties;
+import org.themarioga.telegram.cah.config.ErrorMessageResolver;
+import org.themarioga.telegram.cah.game.service.intf.CCLHTelegramService;
+import org.themarioga.telegram.cah.models.TelegramGame;
+import org.themarioga.telegram.cah.services.intf.TelegramGameService;
+
+import java.text.MessageFormat;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * Bot de juego.
+ * <p>
+ * Porte de {@code CCLHBotServiceImpl}. Además de las sustituciones que ya traía el bot de
+ * diccionarios (identificadores UUID, el chat que sale de la sesión, errores traducidos en un
+ * sitio), aquí hay dos cosas propias:
+ * <ul>
+ *   <li>Se trabaja sobre <b>dos chats a la vez</b>: el grupo donde va la partida y el privado de
+ *       cada jugador. Cada mensaje que se edita o se borra hay que dirigirlo al chat correcto, y
+ *       ninguno de esos identificadores está ya en las entidades del motor.</li>
+ *   <li>El flujo de creación <b>encadena envíos asíncronos</b> para quedarse con los identificadores
+ *       de los mensajes. La continuación corre en otro hilo, así que la sesión se lleva con
+ *       {@link TelegramSession}.</li>
+ * </ul>
+ */
+@Service
+@ConditionalOnProperty(prefix = "cclh.bot", name = "enabled", havingValue = "true")
+public class CCLHTelegramServiceImpl implements CCLHTelegramService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CCLHTelegramServiceImpl.class);
+
+    private final BotMessageService botMessageService;
+    private final CAHService cahService;
+    private final GameService gameService;
+    private final DictionaryService dictionaryService;
+    private final UserService userService;
+    private final TelegramUserService telegramUserService;
+    private final TelegramGameService telegramGameService;
+    private final TelegramRoomResolver roomResolver;
+    private final I18NService i18NService;
+    private final ErrorMessageResolver errorMessageResolver;
+    private final GameConfig gameConfig;
+    private final BotProperties botProperties;
+
+    @Autowired
+    public CCLHTelegramServiceImpl(@Qualifier("cclhBotMessageService") BotMessageService botMessageService,
+                                   CAHService cahService, GameService gameService, DictionaryService dictionaryService,
+                                   UserService userService, TelegramUserService telegramUserService,
+                                   TelegramGameService telegramGameService, TelegramRoomResolver roomResolver,
+                                   I18NService i18NService, ErrorMessageResolver errorMessageResolver,
+                                   GameConfig gameConfig, BotProperties botProperties) {
+        this.botMessageService = botMessageService;
+        this.cahService = cahService;
+        this.gameService = gameService;
+        this.dictionaryService = dictionaryService;
+        this.userService = userService;
+        this.telegramUserService = telegramUserService;
+        this.telegramGameService = telegramGameService;
+        this.roomResolver = roomResolver;
+        this.i18NService = i18NService;
+        this.errorMessageResolver = errorMessageResolver;
+        this.gameConfig = gameConfig;
+        this.botProperties = botProperties;
+    }
+
+    // ///////////// Usuario //////////////////
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void registerUser(org.telegram.telegrambots.meta.api.objects.User from) {
+        try {
+            telegramUserService.register(from);
+
+            botMessageService.sendMessage(from.getId(), i18NService.get("PLAYER_WELCOME", from.getLanguageCode()));
+        } catch (UserAlreadyExistsException e) {
+            logger.warn("El usuario {} ya estaba registrado en el otro bot.", from.getId());
+
+            botMessageService.sendMessage(from.getId(), i18NService.get("PLAYER_WELCOME", from.getLanguageCode()));
+        }
+    }
+
+    @Override
+    public void loginUser(long telegramId) {
+        requireSession();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.SUPPORTS)
+    public void changeUserLanguageMessage() {
+        requireSession();
+
+        InlineKeyboardMarkup.InlineKeyboardMarkupBuilder keyboardBuilder = InlineKeyboardMarkup.builder();
+        for (Lang lang : i18NService.getLanguages()) {
+            keyboardBuilder.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(lang.getName())
+                    .callbackData("change_user_lang__" + lang.getId()).build()));
+        }
+
+        botMessageService.sendMessage(chatId(), i18NService.get("USER_LANG_CHANGE"), keyboardBuilder.build());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void changeUserLanguage(int messageId, String lang) {
+        User user = requireSession();
+
+        userService.setLanguage(user, i18NService.getLanguage(lang));
+
+        botMessageService.deleteMessage(chatId(), messageId);
+        botMessageService.sendMessage(chatId(), i18NService.get("USER_LANG_CHANGED"));
+    }
+
+    // ///////////// Creación //////////////////
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void startCreatingGame(long chatId, String chatTitle) {
+        requireSession();
+
+        long creatorChatId = chatId();
+        String creating = i18NService.get("GAME_CREATING");
+
+        // La partida no se crea hasta tener los identificadores de los tres mensajes, porque son los
+        // que luego se editan según avanza. Se piden encadenados y sin bloquear el hilo que atiende
+        // los updates; la sesión se lleva a la continuación, que corre en otro hilo.
+        TelegramSession session = TelegramSession.capture();
+
+        botMessageService.sendMessageAsync(chatId, creating)
+                .thenCompose(group -> botMessageService.sendMessageAsync(creatorChatId, creating)
+                        .thenCompose(creatorMessage -> botMessageService
+                                .sendMessageAsync(creatorChatId, i18NService.get("PLAYER_JOINING"))
+                                .thenAccept(playerMessage -> session.run(() -> createGame(chatId, chatTitle,
+                                        group.getMessageId(), creatorMessage.getMessageId(),
+                                        playerMessage.getMessageId())))))
+                .exceptionally(e -> {
+                    logger.error("No se ha podido crear la partida en el chat {}: {}", chatId, e.getMessage(), e);
+
+                    return null;
+                });
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = ApplicationException.class)
+    protected void createGame(long chatId, String chatTitle, int groupMessageId, int creatorMessageId,
+                              int playerMessageId) {
+        try {
+            Room room = roomResolver.resolveRoom(chatId, chatTitle);
+
+            Game game = cahService.createGame(room);
+
+            TelegramGame telegramGame = telegramGameService.create(game, groupMessageId, creatorMessageId);
+            telegramGameService.createPlayer(game.getPlayers().get(0), playerMessageId);
+
+            sendMainMenu(telegramGame);
+            sendCreatorPrivateMenu(telegramGame);
+
+            botMessageService.editMessage(chatId(), playerMessageId, i18NService.get("PLAYER_JOINED"));
+        } catch (ApplicationException e) {
+            logger.error("No se ha podido crear la partida en el chat {}: {}", chatId, e.getMessage());
+
+            String message = errorMessageResolver.resolve(e);
+            botMessageService.editMessage(chatId, groupMessageId, message);
+            botMessageService.editMessage(chatId(), creatorMessageId, message);
+        }
+    }
+
+    // ///////////// Configuración //////////////////
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameMenuQuery(long chatId, String callbackQueryId) {
+        requireSession();
+
+        guarded(() -> sendMainMenu(getGameAndCheckCreator(chatId)));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameConfigureQuery(long chatId, String callbackQueryId) {
+        requireSession();
+
+        guarded(() -> sendConfigMenu(getGameAndCheckCreator(chatId)));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameSelectModeQuery(long chatId, String callbackQueryId) {
+        requireSession();
+
+        guarded(() -> {
+            TelegramGame telegramGame = getGameAndCheckCreator(chatId);
+
+            editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame) + i18NService.get("GAME_SELECT_MODE"),
+                    InlineKeyboardMarkup.builder()
+                            .keyboardRow(new InlineKeyboardRow(button("GAME_MODE_DEMOCRACY", "game_change_mode__0")))
+                            .keyboardRow(new InlineKeyboardRow(button("GAME_MODE_CLASSIC", "game_change_mode__1")))
+                            .keyboardRow(new InlineKeyboardRow(button("GAME_MODE_DICTATORSHIP", "game_change_mode__2")))
+                            .keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_configure")))
+                            .build());
+        });
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameSelectPunctuationModeQuery(long chatId, String callbackQueryId) {
+        requireSession();
+
+        guarded(() -> {
+            TelegramGame telegramGame = getGameAndCheckCreator(chatId);
+
+            editGroupMessage(telegramGame,
+                    getGameCreatedGroupMessage(telegramGame) + i18NService.get("GAME_PUNCTUATION_MODE"),
+                    InlineKeyboardMarkup.builder()
+                            .keyboardRow(new InlineKeyboardRow(button("GAME_TYPE_ROUNDS", "game_sel_n_rounds")))
+                            .keyboardRow(new InlineKeyboardRow(button("GAME_TYPE_POINTS", "game_sel_n_points")))
+                            .keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_configure")))
+                            .build());
+        });
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameSelectNRoundsToEndQuery(long chatId, String callbackQueryId) {
+        selectNumber(chatId, "game_change_max_rounds__", 1, 9, "GAME_TYPE_ROUNDS_SELECT");
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameSelectNPointsToWinQuery(long chatId, String callbackQueryId) {
+        selectNumber(chatId, "game_change_max_points__", 1, 9, "GAME_TYPE_POINTS_SELECT");
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameSelectMaxPlayersQuery(long chatId, String callbackQueryId) {
+        selectNumber(chatId, "game_change_max_players__", gameConfig.getDefaultMinNumberOfPlayers(),
+                gameConfig.getDefaultMaxNumberOfPlayers(), "GAME_SELECT_MAX_PLAYERS");
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameSelectDictionaryQuery(long chatId, String callbackQueryId, String page) {
+        User user = requireSession();
+
+        guarded(() -> {
+            TelegramGame telegramGame = getGameAndCheckCreator(chatId);
+
+            int pageNumber = Integer.parseInt(page);
+            int perPage = botProperties.getDictionariesPerPage();
+            long total = dictionaryService.getDictionaryCountForTable(user);
+            List<Dictionary> dictionaries =
+                    dictionaryService.getDictionariesPaginatedForTable(user, (pageNumber - 1) * perPage, perPage);
+
+            InlineKeyboardMarkup.InlineKeyboardMarkupBuilder keyboard = InlineKeyboardMarkup.builder();
+            if (pageNumber > 1) {
+                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text("⬅")
+                        .callbackData("game_sel_dictionary__" + (pageNumber - 1)).build()));
+            }
+            for (Dictionary dictionary : dictionaries) {
+                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(dictionary.getName())
+                        .callbackData("game_change_dictionary__" + dictionary.getId()).build()));
+            }
+            if (total > (long) pageNumber * perPage) {
+                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text("➡")
+                        .callbackData("game_sel_dictionary__" + (pageNumber + 1)).build()));
+            }
+            keyboard.keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_configure")));
+
+            editGroupMessage(telegramGame,
+                    getGameCreatedGroupMessage(telegramGame) + i18NService.get("GAME_DICTIONARY_SELECT"),
+                    keyboard.build());
+        });
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameChangeMode(long chatId, String callbackQueryId, String data) {
+        changeSetting(chatId, game -> cahService.setVotationMode(game.getRoom(),
+                VotationModeEnum.values()[Integer.parseInt(data)]));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameChangeDictionary(long chatId, String callbackQueryId, String data) {
+        changeSetting(chatId, game -> cahService.setDictionary(game.getRoom(),
+                dictionaryService.getDictionaryById(UUID.fromString(data))));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameChangeMaxPlayers(long chatId, String callbackQueryId, String data) {
+        changeSetting(chatId, game -> cahService.setMaxNumberOfPlayers(game.getRoom(), Integer.parseInt(data)));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameChangeNRoundsToEnd(long chatId, String callbackQueryId, String data) {
+        changeSetting(chatId, game -> cahService.setNumberOfRoundsToEnd(game.getRoom(), Integer.parseInt(data)));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
+    public void gameChangeNCardsToWin(long chatId, String callbackQueryId, String data) {
+        changeSetting(chatId, game -> cahService.setNumberOfPointsToWin(game.getRoom(), Integer.parseInt(data)));
+    }
+
+    // ///////////// Ayuda //////////////////
+
+    @Override
+    @Transactional(propagation = Propagation.SUPPORTS)
+    public void sendHelpMessage(long chatId) {
+        BotProperties.Bot bot = botProperties.getGame();
+
+        botMessageService.sendMessage(chatId, MessageFormat.format(i18NService.get("GAME_HELP"),
+                bot.getDisplayName() + " (" + bot.getAlias() + ")", bot.getVersion(), bot.getHelpUrl(),
+                bot.getOwnerAlias()));
+    }
+
+    // ///////////// Flujos compartidos //////////////////
+
+    private void selectNumber(long chatId, String callbackPrefix, int from, int to, String messageTag) {
+        requireSession();
+
+        guarded(() -> {
+            TelegramGame telegramGame = getGameAndCheckCreator(chatId);
+
+            InlineKeyboardMarkup.InlineKeyboardMarkupBuilder keyboard = InlineKeyboardMarkup.builder();
+            InlineKeyboardRow row = new InlineKeyboardRow();
+            for (int number = from; number <= to; number++) {
+                row.add(InlineKeyboardButton.builder().text(String.valueOf(number))
+                        .callbackData(callbackPrefix + number).build());
+
+                // De tres en tres, que es como caben en la pantalla de un móvil
+                if (row.size() == 3) {
+                    keyboard.keyboardRow(row);
+                    row = new InlineKeyboardRow();
+                }
+            }
+            if (!row.isEmpty()) keyboard.keyboardRow(row);
+            keyboard.keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_configure")));
+
+            editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame) + i18NService.get(messageTag),
+                    keyboard.build());
+        });
+    }
+
+    private void changeSetting(long chatId, java.util.function.UnaryOperator<Game> change) {
+        requireSession();
+
+        guarded(() -> {
+            TelegramGame telegramGame = getGameAndCheckCreator(chatId);
+
+            change.apply(telegramGame.getGame());
+
+            sendConfigMenu(telegramGame);
+        });
+    }
+
+    // ///////////// Menús //////////////////
+
+    private void sendMainMenu(TelegramGame telegramGame) {
+        Game game = telegramGame.getGame();
+
+        InlineKeyboardMarkup.InlineKeyboardMarkupBuilder keyboard = InlineKeyboardMarkup.builder();
+        if (game.getStatus() == GameStatusEnum.CREATED) {
+            if (game.getPlayers().size() < game.getMaxNumberOfPlayers()) {
+                keyboard.keyboardRow(new InlineKeyboardRow(button("GAME_JOIN_BUTTON", "game_join")));
+            }
+
+            keyboard.keyboardRow(new InlineKeyboardRow(button("GAME_CONFIGURE_BUTTON", "game_configure")));
+
+            if (game.getPlayers().size() >= gameConfig.getDefaultMinNumberOfPlayers()) {
+                keyboard.keyboardRow(new InlineKeyboardRow(button("GAME_START_BUTTON", "game_start")));
+            }
+        }
+        keyboard.keyboardRow(new InlineKeyboardRow(button("GAME_DELETE_BUTTON", "game_delete_group")));
+
+        String message = getGameCreatedGroupMessage(telegramGame);
+        if (game.getStatus() != GameStatusEnum.STARTED) {
+            if (game.getPlayers().size() > 1) {
+                message += "\n\n" + getCurrentPlayerNumberMessage(telegramGame);
+            }
+        } else if (!game.getDeletionVotes().isEmpty()) {
+            message += "\n\n" + getCurrentVoteDeletionNumberMessage(telegramGame);
+        }
+
+        editGroupMessage(telegramGame, message, keyboard.build());
+    }
+
+    private void sendCreatorPrivateMenu(TelegramGame telegramGame) {
+        Long creatorChatId = chatIdOf(telegramGame.getGame().getCreator());
+        if (creatorChatId == null) return;
+
+        botMessageService.editMessage(creatorChatId, telegramGame.getCreatorMessageId(),
+                i18NService.get("PLAYER_CREATED_GAME"),
+                InlineKeyboardMarkup.builder()
+                        .keyboardRow(new InlineKeyboardRow(button("GAME_DELETE_BUTTON", "game_delete_private")))
+                        .build());
+    }
+
+    private void sendConfigMenu(TelegramGame telegramGame) {
+        editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame),
+                InlineKeyboardMarkup.builder()
+                        .keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_GAME_MODE", "game_sel_mode")))
+                        .keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_PUNCTUATION_MODE", "game_sel_point_type")))
+                        .keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_DICTIONARY", "game_sel_dictionary__1")))
+                        .keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_MAX_N_PLAYERS", "game_sel_max_players")))
+                        .keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_menu")))
+                        .build());
+    }
+
+    /**
+     * Edita el mensaje de la partida en el grupo. El chat no está en la entidad del motor: hay que
+     * resolverlo por la tabla de equivalencias.
+     */
+    private void editGroupMessage(TelegramGame telegramGame, String message, InlineKeyboardMarkup keyboard) {
+        Long groupChatId = telegramGameService.getChatId(telegramGame.getGame().getRoom());
+        if (groupChatId == null) {
+            logger.error("La sala {} no tiene chat de Telegram asociado", telegramGame.getGame().getRoom().getId());
+            return;
+        }
+
+        botMessageService.editMessage(groupChatId, telegramGame.getFirstMessageId(), message, keyboard);
+    }
+
+    private InlineKeyboardButton button(String textTag, String callbackData) {
+        return InlineKeyboardButton.builder().text(i18NService.get(textTag)).callbackData(callbackData).build();
+    }
+
+    // ///////////// Sesión, partida y permisos //////////////////
+
+    private long chatId() {
+        Long telegramId = TelegramSecurityUtils.getTelegramId();
+        if (telegramId == null) throw new UserDoesntExistsException();
+
+        return telegramId;
+    }
+
+    private User requireSession() {
+        User user = SecurityUtils.getUser();
+        if (user == null) throw new UserDoesntExistsException();
+
+        return user;
+    }
+
+    /**
+     * Chat privado de un usuario, o {@code null} si no lo tiene (por ejemplo si viene de otra
+     * plataforma).
+     */
+    private Long chatIdOf(User user) {
+        TelegramUser telegramUser = telegramUserService.getByUser(user);
+        if (telegramUser == null) {
+            logger.warn("El usuario {} no tiene chat de Telegram asociado", user.getId());
+            return null;
+        }
+
+        return telegramUser.getId();
+    }
+
+    private TelegramGame getGameByChatId(long chatId) {
+        Room room = roomResolver.resolveRoom(chatId, null);
+
+        Game game = gameService.getByRoom(room);
+        if (game == null) throw new GameDoesntExistsException();
+
+        TelegramGame telegramGame = telegramGameService.getByGame(game);
+        if (telegramGame == null) throw new GameDoesntExistsException();
+
+        return telegramGame;
+    }
+
+    private TelegramGame getGameAndCheckCreator(long chatId) {
+        TelegramGame telegramGame = getGameByChatId(chatId);
+
+        if (!Objects.equals(telegramGame.getGame().getCreator().getId(), requireSession().getId()))
+            throw new GameOnlyCreatorCanPerformActionException();
+
+        return telegramGame;
+    }
+
+    // ///////////// Errores //////////////////
+
+    /**
+     * Ejecuta la acción y, si el motor la rechaza, se lo cuenta al usuario.
+     * <p>
+     * Si el update venía de un botón se contesta a la propia pulsación, que es como avisa este bot
+     * sin ensuciar el grupo con mensajes de error; si venía de un comando, con un mensaje normal.
+     */
+    private void guarded(Runnable action) {
+        try {
+            action.run();
+        } catch (ApplicationException e) {
+            String message = errorMessageResolver.resolve(e);
+
+            String callbackQueryId = TelegramSecurityUtils.getCallbackQueryId();
+            if (callbackQueryId != null) {
+                botMessageService.answerCallbackQuery(callbackQueryId, message);
+            } else {
+                botMessageService.sendMessage(chatId(), message);
+            }
+        }
+    }
+
+    // ///////////// Textos //////////////////
+
+    private String getGameCreatedGroupMessage(TelegramGame telegramGame) {
+        Game game = telegramGame.getGame();
+
+        StringBuilder message = new StringBuilder(i18NService.get("GAME_CREATED_GROUP"));
+
+        message.append("\n").append(MessageFormat.format(i18NService.get("GAME_SELECTED_MODE"),
+                i18NService.get(votationModeTag(game.getVotationMode()))));
+
+        message.append("\n").append(MessageFormat.format(i18NService.get("GAME_SELECTED_DICTIONARY"),
+                game.getDictionary().getName()));
+
+        message.append("\n").append(game.getPunctuationMode() == PunctuationModeEnum.ROUNDS
+                ? MessageFormat.format(i18NService.get("GAME_SELECTED_ROUNDS_TO_END"), game.getNumberOfRoundsToEnd())
+                : MessageFormat.format(i18NService.get("GAME_SELECTED_POINTS_TO_WIN"), game.getNumberOfPointsToWin()));
+
+        message.append("\n").append(MessageFormat.format(i18NService.get("GAME_SELECTED_MAX_PLAYER_NUMBER"),
+                game.getMaxNumberOfPlayers()));
+
+        return message.toString();
+    }
+
+    /**
+     * El original metía los nombres de los jugadores dentro de la cadena de formato y luego la
+     * pasaba por {@code MessageFormat}, así que un nombre con llaves rompía el mensaje. Aquí se
+     * formatea primero y se añaden los nombres después.
+     */
+    private String getCurrentPlayerNumberMessage(TelegramGame telegramGame) {
+        StringBuilder message = new StringBuilder(
+                MessageFormat.format(i18NService.get("GAME_CREATED_CURRENT_PLAYER_NUMBER"),
+                        telegramGame.getGame().getPlayers().size()));
+
+        for (Player player : telegramGame.getGame().getPlayers()) {
+            message.append("\n").append(player.getUser().getName());
+        }
+
+        return message.toString();
+    }
+
+    private String getCurrentVoteDeletionNumberMessage(TelegramGame telegramGame) {
+        return MessageFormat.format(i18NService.get("GAME_CREATED_CURRENT_VOTE_DELETION_NUMBER"),
+                telegramGame.getGame().getDeletionVotes().size());
+    }
+
+    private static String votationModeTag(VotationModeEnum mode) {
+        return switch (mode) {
+            case DEMOCRACY -> "GAME_MODE_DEMOCRACY";
+            case CLASSIC -> "GAME_MODE_CLASSIC";
+            case DICTATORSHIP -> "GAME_MODE_DICTATORSHIP";
+        };
+    }
+
+    private static String punctuationModeTag(PunctuationModeEnum mode) {
+        return mode == PunctuationModeEnum.ROUNDS ? "GAME_TYPE_ROUNDS" : "GAME_TYPE_POINTS";
+    }
+
+}
