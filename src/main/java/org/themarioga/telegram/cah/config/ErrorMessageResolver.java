@@ -47,9 +47,9 @@ public class ErrorMessageResolver {
      * Texto traducido para una excepción, en el idioma del usuario de la sesión.
      * <p>
      * Si el error no tiene texto, se devuelve el genérico. {@code I18NService} devuelve el propio
-     * nombre del tag cuando no lo encuentra, y enseñarle "ERROR_ROUND_NOT_FOUND" a un usuario es
-     * peor que decirle que algo ha fallado: hoy 37 de los errores del motor no tienen texto, casi
-     * todos validaciones internas que no deberían llegar hasta aquí.
+     * nombre del tag cuando no lo encuentra, y enseñarle "ERROR_USER_ID_EMPTY" a un usuario es peor
+     * que decirle que algo ha fallado: hoy 14 de los errores del motor no tienen texto, todos
+     * validaciones internas que no deberían llegar hasta aquí.
      */
     public String resolve(Throwable e) {
         if (e instanceof ApplicationException applicationException) {

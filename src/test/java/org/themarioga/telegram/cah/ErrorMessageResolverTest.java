@@ -60,8 +60,8 @@ class ErrorMessageResolverTest {
 
     /**
      * La invariante que importa: pase lo que pase, al usuario nunca se le enseña el nombre de un tag.
-     * Hoy 37 errores del motor no tienen texto (casi todos validaciones internas), y sin esta red
-     * cualquiera de ellos aparecería en pantalla como "ERROR_ROUND_NOT_FOUND".
+     * Hoy 14 errores del motor no tienen texto (todos validaciones internas), y sin esta red
+     * cualquiera de ellos aparecería en pantalla como "ERROR_USER_ID_EMPTY".
      */
     @Test
     void neverLeaksATagName() {
