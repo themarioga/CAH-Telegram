@@ -77,6 +77,44 @@ class ErrorMessageResolverTest {
         }
     }
 
+    /**
+     * Los errores que un jugador puede provocar de verdad tienen que decirle qué ha pasado.
+     */
+    @Test
+    void theErrorsAPlayerCanHitAreExplained() {
+        List<ErrorEnum> playerFacing = List.of(
+                CAHErrorEnum.CARD_ALREADY_PLAYED, CAHErrorEnum.CARD_ALREADY_VOTED,
+                CAHErrorEnum.PLAYER_CANNOT_PLAY_CARD, CAHErrorEnum.PLAYER_CANNOT_VOTE_CARD,
+                CAHErrorEnum.ROUND_PRESIDENT_CANNOT_PLAY_CARD, CAHErrorEnum.ROUND_WRONG_STATUS,
+                CommonErrorEnum.GAME_NOT_FOUND, CommonErrorEnum.GAME_ALREADY_EXISTS,
+                CommonErrorEnum.GAME_CREATOR_CANNOT_LEAVE, CommonErrorEnum.GAME_ONLY_CREATOR_CAN_PERFORM_ACTION,
+                CommonErrorEnum.PLAYER_NOT_FOUND, CommonErrorEnum.PLAYER_ALREADY_EXISTS,
+                CommonErrorEnum.USER_NOT_ACTIVE);
+
+        String generic = errorMessageResolver.resolve(new IllegalStateException("boom"));
+
+        for (ErrorEnum error : playerFacing) {
+            Assertions.assertNotEquals(generic, errorMessageResolver.resolve(new ApplicationException(error)),
+                    () -> "el error " + error + " se le explica al jugador como genérico");
+        }
+    }
+
+    /**
+     * Y los que son validaciones internas caen al genérico <b>a propósito</b>: si alguna vez
+     * afloran, "Ha ocurrido un error inesperado" es mejor que "El usuario no puede ser nulo".
+     */
+    @Test
+    void theInternalOnesStayGeneric() {
+        String generic = errorMessageResolver.resolve(new IllegalStateException("boom"));
+
+        for (ErrorEnum error : List.of(CommonErrorEnum.USER_EMPTY, CommonErrorEnum.USER_ID_EMPTY,
+                CommonErrorEnum.ROOM_EMPTY, CommonErrorEnum.ROOM_ID_EMPTY,
+                CommonErrorEnum.USER_USERNAME_EMPTY, CommonErrorEnum.ROOM_ROOMNAME_EMPTY)) {
+            Assertions.assertEquals(generic, errorMessageResolver.resolve(new ApplicationException(error)),
+                    () -> "el error interno " + error + " ha dejado de ser genérico");
+        }
+    }
+
     @Test
     void unknownThrowableFallsBackToTheGenericMessage() {
         Assertions.assertEquals("Ha ocurrido un error inesperado.",
