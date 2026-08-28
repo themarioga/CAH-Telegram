@@ -56,12 +56,12 @@ import java.util.function.Supplier;
  * <p>
  * Es el porte de {@code DictionariesBotServiceImpl}, con tres sustituciones que atraviesan todo:
  * <ul>
- *   <li>Los identificadores del motor son {@link UUID}, no {@code long}.</li>
- *   <li>El chat al que se responde sale de {@link TelegramSecurityUtils#getTelegramId()}. Antes se
- *       usaba {@code SecurityUtils.getId()} porque el id del usuario <em>era</em> el de Telegram;
- *       ahora son cosas distintas y confundirlas es escribirle a un chat que no existe.</li>
- *   <li>Los errores los traduce {@link ErrorMessageResolver} en un único sitio, en vez de una
- *       escalera de {@code catch} por excepción repetida en cada método.</li>
+ * <li>Los identificadores del motor son {@link UUID}, no {@code long}.</li>
+ * <li>El chat al que se responde sale de {@link TelegramSecurityUtils#getTelegramId()}. Antes se
+ * usaba {@code SecurityUtils.getId()} porque el id del usuario <em>era</em> el de Telegram;
+ * ahora son cosas distintas y confundirlas es escribirle a un chat que no existe.</li>
+ * <li>Los errores los traduce {@link ErrorMessageResolver} en un único sitio, en vez de una
+ * escalera de {@code catch} por excepción repetida en cada método.</li>
  * </ul>
  */
 @Service
@@ -89,13 +89,7 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
     private final String botName;
 
     @Autowired
-    public DictionariesTelegramServiceImpl(@Qualifier("dictionariesBotMessageService") BotMessageService botMessageService,
-                                           DictionaryService dictionaryService, CardService cardService,
-                                           UserService userService, TelegramUserService telegramUserService,
-                                           I18NService i18NService, ErrorMessageResolver errorMessageResolver,
-                                           DictionariesConfig dictionariesConfig, BotProperties botProperties,
-                                           TelegramAdmins admins, SelectionRegistry selectionRegistry,
-                                           @Value("${dictionaries.bot.name}") String botName) {
+    public DictionariesTelegramServiceImpl(@Qualifier("dictionariesBotMessageService") BotMessageService botMessageService, DictionaryService dictionaryService, CardService cardService, UserService userService, TelegramUserService telegramUserService, I18NService i18NService, ErrorMessageResolver errorMessageResolver, DictionariesConfig dictionariesConfig, BotProperties botProperties, TelegramAdmins admins, SelectionRegistry selectionRegistry, @Value("${dictionaries.bot.name}") String botName) {
         this.botMessageService = botMessageService;
         this.dictionaryService = dictionaryService;
         this.cardService = cardService;
@@ -138,8 +132,7 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
         InlineKeyboardMarkup.InlineKeyboardMarkupBuilder keyboardBuilder = InlineKeyboardMarkup.builder();
         for (Lang lang : i18NService.getLanguages()) {
-            keyboardBuilder.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(lang.getName())
-                    .callbackData("change_user_lang__" + lang.getId()).build()));
+            keyboardBuilder.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(lang.getName()).callbackData("change_user_lang__" + lang.getId()).build()));
         }
 
         botMessageService.sendMessage(chatId(), i18NService.get("USER_LANG_CHANGE"), keyboardBuilder.build());
@@ -376,12 +369,7 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
             sendCardList(dictionary, CardTypeEnum.BLACK);
             sendCardList(dictionary, CardTypeEnum.WHITE);
 
-            InlineKeyboardMarkup shareKeyboard = InlineKeyboardMarkup.builder()
-                    .keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                            .text(i18NService.get("ACCEPT")).callbackData("share_accept__" + dictionaryId).build()))
-                    .keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                            .text(i18NService.get("CANCEL")).callbackData("share_decline__" + dictionaryId).build()))
-                    .build();
+            InlineKeyboardMarkup shareKeyboard = InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(i18NService.get("ACCEPT")).callbackData("share_accept__" + dictionaryId).build())).keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(i18NService.get("CANCEL")).callbackData("share_decline__" + dictionaryId).build())).build();
 
             sendToBotOwner(getDictionaryRequestShareMessage(dictionary), shareKeyboard);
 
@@ -562,11 +550,9 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
             Dictionary dictionary = getDictionaryAndCheckCreator(dictionaryId);
 
             if (messageId == null) {
-                botMessageService.sendMessage(chatId(), getCollaboratorMenuMessage(dictionary),
-                        getDictionaryCollaboratorMenu(dictionaryId));
+                botMessageService.sendMessage(chatId(), getCollaboratorMenuMessage(dictionary), getDictionaryCollaboratorMenu(dictionaryId));
             } else {
-                botMessageService.editMessage(chatId(), messageId, getCollaboratorMenuMessage(dictionary),
-                        getDictionaryCollaboratorMenu(dictionaryId));
+                botMessageService.editMessage(chatId(), messageId, getCollaboratorMenuMessage(dictionary), getDictionaryCollaboratorMenu(dictionaryId));
             }
         });
     }
@@ -579,9 +565,7 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
         guarded(() -> {
             Dictionary dictionary = getDictionaryAndCheckCreator(dictionaryId);
 
-            botMessageService.editMessage(chatId(), messageId,
-                    getCollaboratorListMessage(dictionary.getCollaborators()),
-                    goBackTo("manage_collabs_select__" + dictionaryId));
+            botMessageService.editMessage(chatId(), messageId, getCollaboratorListMessage(dictionary.getCollaborators()), goBackTo("manage_collabs_select__" + dictionaryId));
         });
     }
 
@@ -603,16 +587,10 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
             botMessageService.sendMessage(chatId(), getAddedCollaboratorMessage(collaborator));
 
-            InlineKeyboardMarkup acceptKeyboard = InlineKeyboardMarkup.builder()
-                    .keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                            .text(i18NService.get("ACCEPT")).callbackData("collaborator_accept__" + dictionaryId).build()))
-                    .keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                            .text(i18NService.get("CANCEL")).callbackData("collaborator_decline__" + dictionaryId).build()))
-                    .build();
+            InlineKeyboardMarkup acceptKeyboard = InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(i18NService.get("ACCEPT")).callbackData("collaborator_accept__" + dictionaryId).build())).keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(i18NService.get("CANCEL")).callbackData("collaborator_decline__" + dictionaryId).build())).build();
             sendTo(collaborator.getUser(), getAddCollaboratorAcceptMessage(collaborator), acceptKeyboard);
 
-            botMessageService.sendMessage(chatId(), getCollaboratorMenuMessage(dictionary),
-                    getDictionaryCollaboratorMenu(dictionaryId));
+            botMessageService.sendMessage(chatId(), getCollaboratorMenuMessage(dictionary), getDictionaryCollaboratorMenu(dictionaryId));
         }, override(UserDoesntExistsException.class, () -> i18NService.get("COLLABORATOR_ADD_USER_DOESNT_EXISTS")));
     }
 
@@ -666,10 +644,8 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
             botMessageService.sendMessage(chatId(), i18NService.get("COLLABORATORS_DELETED"));
             sendTo(user, getDeleteCollaboratorInfoMessage(dictionary));
 
-            botMessageService.sendMessage(chatId(), getCollaboratorMenuMessage(dictionary),
-                    getDictionaryCollaboratorMenu(dictionaryId));
-        }, override(UserDoesntExistsException.class,
-                () -> i18NService.get("ERROR_COLLABORATOR_REMOVE_USER_DOESNT_EXISTS")));
+            botMessageService.sendMessage(chatId(), getCollaboratorMenuMessage(dictionary), getDictionaryCollaboratorMenu(dictionaryId));
+        }, override(UserDoesntExistsException.class, () -> i18NService.get("ERROR_COLLABORATOR_REMOVE_USER_DOESNT_EXISTS")));
     }
 
     @Override
@@ -686,14 +662,12 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
         guarded(() -> {
             Dictionary dictionary = getDictionaryAndCheckCreator(dictionaryId);
 
-            DictionaryCollaborator collaborator =
-                    dictionaryService.toggleCanEditCollaborator(dictionary, getUserByNameOrId(nameOrId));
+            DictionaryCollaborator collaborator = dictionaryService.toggleCanEditCollaborator(dictionary, getUserByNameOrId(nameOrId));
 
             sendTo(collaborator.getUser(), getToggledCollaboratorPrivateMessage(collaborator));
             botMessageService.sendMessage(chatId(), getToggledCollaboratorMessage(collaborator));
 
-            botMessageService.sendMessage(chatId(), getCollaboratorMenuMessage(dictionary),
-                    getDictionaryCollaboratorMenu(dictionaryId));
+            botMessageService.sendMessage(chatId(), getCollaboratorMenuMessage(dictionary), getDictionaryCollaboratorMenu(dictionaryId));
         });
     }
 
@@ -704,9 +678,7 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
     public void sendHelpMessage(long chatId) {
         BotProperties.Bot bot = botProperties.getDictionaries();
 
-        botMessageService.sendMessage(chatId, MessageFormat.format(i18NService.get("DICTIONARIES_HELP"),
-                bot.getDisplayName() + " (" + bot.getAlias() + ")", bot.getVersion(), bot.getHelpUrl(),
-                bot.getOwnerAlias()));
+        botMessageService.sendMessage(chatId, MessageFormat.format(i18NService.get("DICTIONARIES_HELP"), bot.getDisplayName() + " (" + bot.getAlias() + ")", bot.getVersion(), bot.getHelpUrl(), bot.getOwnerAlias()));
     }
 
     // ///////////// Flujos compartidos por tipo de carta //////////////////
@@ -721,8 +693,7 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
             sendCardList(dictionary, type);
 
-            botMessageService.sendMessage(chatId(), i18NService.get(tag(type, "LIST_END")),
-                    goBackTo("manage_cards_select__" + dictionaryId));
+            botMessageService.sendMessage(chatId(), i18NService.get(tag(type, "LIST_END")), goBackTo("manage_cards_select__" + dictionaryId));
         }, publishedOverride());
     }
 
@@ -766,9 +737,7 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
             sendCardList(dictionary, type);
 
-            String command = "edit".equals(action)
-                    ? command(type, "edit") + "_sel__" + dictionaryId
-                    : command(type, "delete") + "__" + dictionaryId;
+            String command = "edit".equals(action) ? command(type, "edit") + "_sel__" + dictionaryId : command(type, "delete") + "__" + dictionaryId;
             askFor(command, i18NService.get(tag(type, "edit".equals(action) ? "CARD_EDIT" : "CARD_DELETE")));
         }, publishedOverride());
     }
@@ -798,10 +767,8 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
             cardService.changeText(card, newText);
 
             botMessageService.sendMessage(chatId(), i18NService.get(tag(type, "CARD_EDITED")));
-            botMessageService.sendMessage(chatId(), getCardMenuMessage(card.getDictionary()),
-                    getCardKeyboardMenu(card.getDictionary().getId()));
-        }, override(DictionaryNotYoursException.class, () -> i18NService.get("ERROR_CARD_NOT_YOURS")),
-                override(DictionaryAlreadySharedException.class, () -> i18NService.get("ERROR_DICTIONARY_SHARED")));
+            botMessageService.sendMessage(chatId(), getCardMenuMessage(card.getDictionary()), getCardKeyboardMenu(card.getDictionary().getId()));
+        }, override(DictionaryNotYoursException.class, () -> i18NService.get("ERROR_CARD_NOT_YOURS")), override(DictionaryAlreadySharedException.class, () -> i18NService.get("ERROR_DICTIONARY_SHARED")));
     }
 
     private void deleteCard(UUID dictionaryId, String cardSelection, CardTypeEnum type) {
@@ -991,7 +958,8 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     // ///////////// Errores //////////////////
 
-    private record ErrorOverride(Class<? extends ApplicationException> type, Supplier<String> message) {}
+    private record ErrorOverride(Class<? extends ApplicationException> type, Supplier<String> message) {
+    }
 
     private ErrorOverride override(Class<? extends ApplicationException> type, Supplier<String> message) {
         return new ErrorOverride(type, message);
@@ -1006,11 +974,7 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
     }
 
     private ErrorOverride cardLengthOverride(CardTypeEnum type) {
-        return override(org.themarioga.engine.cah.exceptions.card.CardTextExcededLength.class,
-                () -> MessageFormat.format(i18NService.get("ERROR_CARD_EXCEEDED_LENGTH"),
-                        type == CardTypeEnum.WHITE
-                                ? dictionariesConfig.getMaxWhiteCardLength()
-                                : dictionariesConfig.getMaxBlackCardLength()));
+        return override(org.themarioga.engine.cah.exceptions.card.CardTextExcededLength.class, () -> MessageFormat.format(i18NService.get("ERROR_CARD_EXCEEDED_LENGTH"), type == CardTypeEnum.WHITE ? dictionariesConfig.getMaxWhiteCardLength() : dictionariesConfig.getMaxBlackCardLength()));
     }
 
     /**
@@ -1038,40 +1002,19 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
     // ///////////// Teclados //////////////////
 
     private InlineKeyboardMarkup getMainMenuKeyboard() {
-        return InlineKeyboardMarkup.builder()
-                .keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_LIST_BUTTON", "dictionary_list")))
-                .keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_CREATE_BUTTON", "dictionary_create")))
-                .keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_RENAME_BUTTON", "dictionary_rename"), button("DICTIONARIES_LANG_BUTTON", "dictionary_lang")))
-                .keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_DELETE_BUTTON", "dictionary_delete")))
-                .keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_TOGGLE_PUBLISH_BUTTON", "dictionary_toggle"), button("DICTIONARIES_TOGGLE_SHARE_BUTTON", "dictionary_share")))
-                .keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_MANAGE_CARDS_BUTTON", "dictionary_manage_cards"), button("DICTIONARIES_MANAGE_COLLABS_BUTTON", "dictionary_manage_collabs")))
-                .build();
+        return InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_LIST_BUTTON", "dictionary_list"))).keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_CREATE_BUTTON", "dictionary_create"))).keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_RENAME_BUTTON", "dictionary_rename"), button("DICTIONARIES_LANG_BUTTON", "dictionary_lang"))).keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_DELETE_BUTTON", "dictionary_delete"))).keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_TOGGLE_PUBLISH_BUTTON", "dictionary_toggle"), button("DICTIONARIES_TOGGLE_SHARE_BUTTON", "dictionary_share"))).keyboardRow(new InlineKeyboardRow(button("DICTIONARIES_MANAGE_CARDS_BUTTON", "dictionary_manage_cards"), button("DICTIONARIES_MANAGE_COLLABS_BUTTON", "dictionary_manage_collabs"))).build();
     }
 
     private InlineKeyboardMarkup getDictionaryCollaboratorMenu(UUID dictionaryId) {
-        return InlineKeyboardMarkup.builder()
-                .keyboardRow(new InlineKeyboardRow(button("COLLABORATORS_LIST_BUTTON", "list_collabs__" + dictionaryId)))
-                .keyboardRow(new InlineKeyboardRow(button("COLLABORATORS_ADD_BUTTON", "add_collabs__" + dictionaryId)))
-                .keyboardRow(new InlineKeyboardRow(button("COLLABORATORS_DELETE_BUTTON", "delete_collabs__" + dictionaryId)))
-                .keyboardRow(new InlineKeyboardRow(button("COLLABORATORS_TOGGLE_BUTTON", "toggle_collabs__" + dictionaryId)))
-                .keyboardRow(new InlineKeyboardRow(button("GO_BACK", "menu")))
-                .build();
+        return InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(button("COLLABORATORS_LIST_BUTTON", "list_collabs__" + dictionaryId))).keyboardRow(new InlineKeyboardRow(button("COLLABORATORS_ADD_BUTTON", "add_collabs__" + dictionaryId))).keyboardRow(new InlineKeyboardRow(button("COLLABORATORS_DELETE_BUTTON", "delete_collabs__" + dictionaryId))).keyboardRow(new InlineKeyboardRow(button("COLLABORATORS_TOGGLE_BUTTON", "toggle_collabs__" + dictionaryId))).keyboardRow(new InlineKeyboardRow(button("GO_BACK", "menu"))).build();
     }
 
     private InlineKeyboardMarkup getCardKeyboardMenu(UUID dictionaryId) {
-        return InlineKeyboardMarkup.builder()
-                .keyboardRow(new InlineKeyboardRow(button("CARDS_WHITE_LIST_BUTTON", "list_white_cards__" + dictionaryId), button("CARDS_BLACK_LIST_BUTTON", "list_black_cards__" + dictionaryId)))
-                .keyboardRow(new InlineKeyboardRow(button("CARDS_WHITE_ADD_BUTTON", "add_white_cards__" + dictionaryId), button("CARDS_BLACK_ADD_BUTTON", "add_black_cards__" + dictionaryId)))
-                .keyboardRow(new InlineKeyboardRow(button("CARDS_WHITE_EDIT_BUTTON", "edit_white_cards__" + dictionaryId), button("CARDS_BLACK_EDIT_BUTTON", "edit_black_cards__" + dictionaryId)))
-                .keyboardRow(new InlineKeyboardRow(button("CARDS_WHITE_REMOVE_BUTTON", "delete_white_cards__" + dictionaryId), button("CARDS_BLACK_REMOVE_BUTTON", "delete_black_cards__" + dictionaryId)))
-                .keyboardRow(new InlineKeyboardRow(button("GO_BACK", "menu")))
-                .build();
+        return InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(button("CARDS_WHITE_LIST_BUTTON", "list_white_cards__" + dictionaryId), button("CARDS_BLACK_LIST_BUTTON", "list_black_cards__" + dictionaryId))).keyboardRow(new InlineKeyboardRow(button("CARDS_WHITE_ADD_BUTTON", "add_white_cards__" + dictionaryId), button("CARDS_BLACK_ADD_BUTTON", "add_black_cards__" + dictionaryId))).keyboardRow(new InlineKeyboardRow(button("CARDS_WHITE_EDIT_BUTTON", "edit_white_cards__" + dictionaryId), button("CARDS_BLACK_EDIT_BUTTON", "edit_black_cards__" + dictionaryId))).keyboardRow(new InlineKeyboardRow(button("CARDS_WHITE_REMOVE_BUTTON", "delete_white_cards__" + dictionaryId), button("CARDS_BLACK_REMOVE_BUTTON", "delete_black_cards__" + dictionaryId))).keyboardRow(new InlineKeyboardRow(button("GO_BACK", "menu"))).build();
     }
 
     private InlineKeyboardMarkup goBackTo(String callbackData) {
-        return InlineKeyboardMarkup.builder()
-                .keyboardRow(new InlineKeyboardRow(button("GO_BACK", callbackData)))
-                .build();
+        return InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(button("GO_BACK", callbackData))).build();
     }
 
     private InlineKeyboardButton button(String textTag, String callbackData) {
@@ -1100,10 +1043,7 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
         for (int i = 0; i < dictionaries.size(); i++) {
             Dictionary dictionary = dictionaries.get(i);
 
-            builder.append(format("DICTIONARY_INFO", i + 1, dictionary.getName(),
-                    yesOrNo(Objects.equals(dictionary.getCreator().getId(), currentUserId)),
-                    yesOrNo(dictionary.getPublished()), yesOrNo(dictionary.getShared()),
-                    dictionary.getLang().getName())).append("\n");
+            builder.append(format("DICTIONARY_INFO", i + 1, dictionary.getName(), yesOrNo(Objects.equals(dictionary.getCreator().getId(), currentUserId)), yesOrNo(dictionary.getPublished()), yesOrNo(dictionary.getShared()), dictionary.getLang().getName())).append("\n");
         }
 
         return builder.toString();
@@ -1117,16 +1057,13 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
         StringBuilder builder = new StringBuilder();
         UUID currentUserId = requireSession().getId();
 
-        List<DictionaryCollaborator> others = collaborators.stream()
-                .filter(c -> !Objects.equals(c.getUser().getId(), currentUserId))
-                .toList();
+        List<DictionaryCollaborator> others = collaborators.stream().filter(c -> !Objects.equals(c.getUser().getId(), currentUserId)).toList();
 
         if (others.isEmpty()) {
             builder.append("\n").append(i18NService.get("COLLABORATORS_LIST_EMPTY")).append("\n");
         } else {
             for (DictionaryCollaborator collaborator : others) {
-                builder.append(format("COLLABORATOR_INFO", collaborator.getUser().getName(),
-                        yesOrNo(collaborator.getAccepted()), yesOrNo(collaborator.getCanEdit()))).append("\n");
+                builder.append(format("COLLABORATOR_INFO", collaborator.getUser().getName(), yesOrNo(collaborator.getAccepted()), yesOrNo(collaborator.getCanEdit()))).append("\n");
             }
         }
 
@@ -1176,10 +1113,8 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
 
     private String getCardAddedMessage(Dictionary dictionary, CardTypeEnum type) {
         int count = cardService.countCardsByDictionaryAndType(dictionary, type);
-        int min = type == CardTypeEnum.WHITE
-                ? dictionariesConfig.getMinNumberOfWhiteCards() : dictionariesConfig.getMinNumberOfBlackCards();
-        int max = type == CardTypeEnum.WHITE
-                ? dictionariesConfig.getMaxNumberOfWhiteCards() : dictionariesConfig.getMaxNumberOfBlackCards();
+        int min = type == CardTypeEnum.WHITE ? dictionariesConfig.getMinNumberOfWhiteCards() : dictionariesConfig.getMinNumberOfBlackCards();
+        int max = type == CardTypeEnum.WHITE ? dictionariesConfig.getMaxNumberOfWhiteCards() : dictionariesConfig.getMaxNumberOfBlackCards();
 
         // Hasta llegar al mínimo se enseña ese objetivo, y a partir de ahí el techo real
         return format(tag(type, "CARD_ADDED"), count, count < min ? min : max);
@@ -1198,8 +1133,7 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
     }
 
     private String getAddCollaboratorAcceptMessage(DictionaryCollaborator collaborator) {
-        return format("COLLABORATORS_ACCEPT_MESSAGE", collaborator.getDictionary().getCreator().getName(),
-                collaborator.getDictionary().getName());
+        return format("COLLABORATORS_ACCEPT_MESSAGE", collaborator.getDictionary().getCreator().getName(), collaborator.getDictionary().getName());
     }
 
     private String getDeleteCollaboratorInfoMessage(Dictionary dictionary) {
@@ -1215,29 +1149,23 @@ public class DictionariesTelegramServiceImpl implements DictionariesTelegramServ
     }
 
     private String getToggledCollaboratorMessage(DictionaryCollaborator collaborator) {
-        return format(Boolean.TRUE.equals(collaborator.getCanEdit())
-                ? "COLLABORATORS_TOGGLED_ON" : "COLLABORATORS_TOGGLED_OFF", collaborator.getUser().getName());
+        return format(Boolean.TRUE.equals(collaborator.getCanEdit()) ? "COLLABORATORS_TOGGLED_ON" : "COLLABORATORS_TOGGLED_OFF", collaborator.getUser().getName());
     }
 
     private String getToggledCollaboratorPrivateMessage(DictionaryCollaborator collaborator) {
-        return format(Boolean.TRUE.equals(collaborator.getCanEdit())
-                        ? "COLLABORATORS_TOGGLED_ON_MESSAGE" : "COLLABORATORS_TOGGLED_OFF_MESSAGE",
-                collaborator.getDictionary().getName());
+        return format(Boolean.TRUE.equals(collaborator.getCanEdit()) ? "COLLABORATORS_TOGGLED_ON_MESSAGE" : "COLLABORATORS_TOGGLED_OFF_MESSAGE", collaborator.getDictionary().getName());
     }
 
     private String getDictionaryPublishedMessage(Dictionary dictionary) {
-        return format(Boolean.TRUE.equals(dictionary.getPublished())
-                ? "DICTIONARY_TOGGLED_ON" : "DICTIONARY_TOGGLED_OFF", dictionary.getName());
+        return format(Boolean.TRUE.equals(dictionary.getPublished()) ? "DICTIONARY_TOGGLED_ON" : "DICTIONARY_TOGGLED_OFF", dictionary.getName());
     }
 
     private String getDictionaryRequestShareMessage(Dictionary dictionary) {
-        return format(Boolean.FALSE.equals(dictionary.getShared())
-                ? "DICTIONARY_SHARED_ON_REQUEST" : "DICTIONARY_SHARED_OFF_REQUEST", dictionary.getName());
+        return format(Boolean.FALSE.equals(dictionary.getShared()) ? "DICTIONARY_SHARED_ON_REQUEST" : "DICTIONARY_SHARED_OFF_REQUEST", dictionary.getName());
     }
 
     private String getDictionaryShareMessage(Dictionary dictionary) {
-        return format(Boolean.TRUE.equals(dictionary.getShared())
-                ? "DICTIONARY_SHARED_ON" : "DICTIONARY_SHARED_OFF", dictionary.getName());
+        return format(Boolean.TRUE.equals(dictionary.getShared()) ? "DICTIONARY_SHARED_ON" : "DICTIONARY_SHARED_OFF", dictionary.getName());
     }
 
     private String getShareDictionaryRejectedMessage(Dictionary dictionary) {

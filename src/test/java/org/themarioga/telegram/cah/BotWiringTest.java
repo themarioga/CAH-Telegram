@@ -14,21 +14,14 @@ import org.themarioga.commons.telegram.services.impl.AuthUpdateInterceptor;
  * <p>
  * Es el test que cubre los dos problemas que impedían arrancar la aplicación:
  * <ul>
- *   <li>los starters de long-polling y webhook, que registraban los dos un bean
- *       {@code telegramBotsApplication} y se pisaban;</li>
- *   <li>el ciclo de dependencias entre {@code ApplicationService} y {@code BotService}.</li>
+ * <li>los starters de long-polling y webhook, que registraban los dos un bean
+ * {@code telegramBotsApplication} y se pisaban;</li>
+ * <li>el ciclo de dependencias entre {@code ApplicationService} y {@code BotService}.</li>
  * </ul>
  * Aquí no se prueban comandos: los {@code ApplicationService} reales llegan en F5 y F6, así que se
  * sustituyen por uno vacío. Lo que se prueba es el arranque.
  */
-@SpringBootTest(properties = {
-        "telegram.bots.type=longpolling",
-        "cclh.bot.enabled=true",
-        "cclh.bot.token=111:fake-token-de-pruebas",
-        "cclh.bot.name=cclhtestbot",
-        "dictionaries.bot.enabled=true",
-        "dictionaries.bot.token=222:fake-token-de-pruebas",
-        "dictionaries.bot.name=dictionariestestbot"})
+@SpringBootTest(properties = {"telegram.bots.type=longpolling", "cclh.bot.enabled=true", "cclh.bot.token=111:fake-token-de-pruebas", "cclh.bot.name=cclhtestbot", "dictionaries.bot.enabled=true", "dictionaries.bot.token=222:fake-token-de-pruebas", "dictionaries.bot.name=dictionariestestbot"})
 class BotWiringTest {
 
     @Autowired
@@ -65,8 +58,7 @@ class BotWiringTest {
     void eachBotHasItsOwnClientAndMessageService() {
         Assertions.assertNotNull(context.getBean("cclhTelegramClient"));
         Assertions.assertNotNull(context.getBean("dictionariesTelegramClient"));
-        Assertions.assertNotSame(context.getBean("cclhBotMessageService"),
-                context.getBean("dictionariesBotMessageService"));
+        Assertions.assertNotSame(context.getBean("cclhBotMessageService"), context.getBean("dictionariesBotMessageService"));
     }
 
 }

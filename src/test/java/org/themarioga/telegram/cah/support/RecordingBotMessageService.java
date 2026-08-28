@@ -138,10 +138,7 @@ public class RecordingBotMessageService implements BotMessageService {
         int messageId = nextMessageId.getAndIncrement();
         sent.add(new Sent(chatId, text, null, false, messageId));
 
-        Message message = Message.builder().messageId(messageId)
-                .chat(org.telegram.telegrambots.meta.api.objects.chat.Chat.builder()
-                        .id(chatId).type("private").build())
-                .build();
+        Message message = Message.builder().messageId(messageId).chat(org.telegram.telegrambots.meta.api.objects.chat.Chat.builder().id(chatId).type("private").build()).build();
 
         return CompletableFuture.completedFuture(message);
     }

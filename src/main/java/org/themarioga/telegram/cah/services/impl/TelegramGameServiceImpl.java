@@ -27,8 +27,7 @@ public class TelegramGameServiceImpl implements TelegramGameService {
     private final TelegramRoomDao telegramRoomDao;
 
     @Autowired
-    public TelegramGameServiceImpl(TelegramGameDao telegramGameDao, TelegramPlayerDao telegramPlayerDao,
-                                   TelegramRoomDao telegramRoomDao) {
+    public TelegramGameServiceImpl(TelegramGameDao telegramGameDao, TelegramPlayerDao telegramPlayerDao, TelegramRoomDao telegramRoomDao) {
         this.telegramGameDao = telegramGameDao;
         this.telegramPlayerDao = telegramPlayerDao;
         this.telegramRoomDao = telegramRoomDao;

@@ -26,8 +26,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
     private final CCLHTelegramService cclhTelegramService;
     private final I18NService i18NService;
 
-    public CCLHApplicationServiceImpl(@Qualifier("cclhBotMessageService") BotMessageService cclhBotMessageService,
-                                      CCLHTelegramService cclhTelegramService, I18NService i18NService) {
+    public CCLHApplicationServiceImpl(@Qualifier("cclhBotMessageService") BotMessageService cclhBotMessageService, CCLHTelegramService cclhTelegramService, I18NService i18NService) {
         this.cclhTelegramService = cclhTelegramService;
         this.i18NService = i18NService;
         this.cclhBotMessageService = cclhBotMessageService;
@@ -39,11 +38,9 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
 
         commands.put("/start", (message, data) -> {
             if (!BotMessageUtils.isMessagePrivate(message)) {
-                logger.error("Comando /start enviado en lugar incorrecto por {}",
-                        BotMessageUtils.getUserInfo(message.getFrom()));
+                logger.error("Comando /start enviado en lugar incorrecto por {}", BotMessageUtils.getUserInfo(message.getFrom()));
 
-                cclhBotMessageService.sendMessage(message.getChat().getId(),
-                        i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
+                cclhBotMessageService.sendMessage(message.getChat().getId(), i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
 
                 return;
             }
@@ -57,11 +54,9 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
 
         commands.put("/lang", (message, data) -> {
             if (!BotMessageUtils.isMessagePrivate(message)) {
-                logger.error("Comando /lang enviado en lugar incorrecto por {}",
-                        BotMessageUtils.getUserInfo(message.getFrom()));
+                logger.error("Comando /lang enviado en lugar incorrecto por {}", BotMessageUtils.getUserInfo(message.getFrom()));
 
-                cclhBotMessageService.sendMessage(message.getChat().getId(),
-                        i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
+                cclhBotMessageService.sendMessage(message.getChat().getId(), i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
 
                 return;
             }
@@ -77,11 +72,9 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
 
         commands.put("/create", (message, data) -> {
             if (BotMessageUtils.isMessagePrivate(message)) {
-                logger.error("Comando /create enviado en lugar incorrecto por {}",
-                        BotMessageUtils.getUserInfo(message.getFrom()));
+                logger.error("Comando /create enviado en lugar incorrecto por {}", BotMessageUtils.getUserInfo(message.getFrom()));
 
-                cclhBotMessageService.sendMessage(message.getChat().getId(),
-                        i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_GROUP", message.getFrom().getLanguageCode()));
+                cclhBotMessageService.sendMessage(message.getChat().getId(), i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_GROUP", message.getFrom().getLanguageCode()));
 
                 return;
             }
@@ -97,11 +90,9 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
 
         commands.put("/deletemygames", (message, data) -> {
             if (!BotMessageUtils.isMessagePrivate(message)) {
-                logger.error("Comando /deletemygames enviado en lugar incorrecto por {}",
-                        BotMessageUtils.getUserInfo(message.getFrom()));
+                logger.error("Comando /deletemygames enviado en lugar incorrecto por {}", BotMessageUtils.getUserInfo(message.getFrom()));
 
-                cclhBotMessageService.sendMessage(message.getChat().getId(),
-                        i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
+                cclhBotMessageService.sendMessage(message.getChat().getId(), i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
 
                 return;
             }
@@ -117,11 +108,9 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
 
         commands.put("/deletegamebyusername", (message, data) -> {
             if (!BotMessageUtils.isMessagePrivate(message)) {
-                logger.error("Comando /deletegamebyusername enviado en lugar incorrecto por {}",
-                        BotMessageUtils.getUserInfo(message.getFrom()));
+                logger.error("Comando /deletegamebyusername enviado en lugar incorrecto por {}", BotMessageUtils.getUserInfo(message.getFrom()));
 
-                cclhBotMessageService.sendMessage(message.getChat().getId(),
-                        i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
+                cclhBotMessageService.sendMessage(message.getChat().getId(), i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
 
                 return;
             }
@@ -138,11 +127,9 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
 
         commands.put("/deleteallgames", (message, data) -> {
             if (!BotMessageUtils.isMessagePrivate(message)) {
-                logger.error("Comando /deleteallgames enviado en lugar incorrecto por {}",
-                        BotMessageUtils.getUserInfo(message.getFrom()));
+                logger.error("Comando /deleteallgames enviado en lugar incorrecto por {}", BotMessageUtils.getUserInfo(message.getFrom()));
 
-                cclhBotMessageService.sendMessage(message.getChat().getId(),
-                        i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
+                cclhBotMessageService.sendMessage(message.getChat().getId(), i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
 
                 return;
             }
@@ -158,11 +145,9 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
 
         commands.put("/sendmessagetoeveryone", (message, data) -> {
             if (!BotMessageUtils.isMessagePrivate(message)) {
-                logger.error("Comando /sendMessage enviado en lugar incorrecto por {}",
-                        BotMessageUtils.getUserInfo(message.getFrom()));
+                logger.error("Comando /sendMessage enviado en lugar incorrecto por {}", BotMessageUtils.getUserInfo(message.getFrom()));
 
-                cclhBotMessageService.sendMessage(message.getChat().getId(),
-                        i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
+                cclhBotMessageService.sendMessage(message.getChat().getId(), i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
 
                 return;
             }
@@ -181,11 +166,9 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
 
         commands.put("/toggleglobalmessages", (message, data) -> {
             if (!BotMessageUtils.isMessagePrivate(message)) {
-                logger.error("Comando /sendMessage enviado en lugar incorrecto por {}",
-                        BotMessageUtils.getUserInfo(message.getFrom()));
+                logger.error("Comando /sendMessage enviado en lugar incorrecto por {}", BotMessageUtils.getUserInfo(message.getFrom()));
 
-                cclhBotMessageService.sendMessage(message.getChat().getId(),
-                        i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
+                cclhBotMessageService.sendMessage(message.getChat().getId(), i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
 
                 return;
             }
@@ -212,8 +195,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.changeUserLanguage(callbackQuery.getMessage().getMessageId(),
-                        data != null && !data.isBlank() ? data : callbackQuery.getFrom().getLanguageCode());
+                cclhTelegramService.changeUserLanguage(callbackQuery.getMessage().getMessageId(), data != null && !data.isBlank() ? data : callbackQuery.getFrom().getLanguageCode());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -225,8 +207,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameMenuQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId());
+                cclhTelegramService.gameMenuQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -238,8 +219,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameConfigureQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId());
+                cclhTelegramService.gameConfigureQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -251,8 +231,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameSelectModeQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId());
+                cclhTelegramService.gameSelectModeQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -264,8 +243,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameSelectPunctuationModeQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId());
+                cclhTelegramService.gameSelectPunctuationModeQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -277,8 +255,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameSelectDictionaryQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId(), data);
+                cclhTelegramService.gameSelectDictionaryQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId(), data);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -290,8 +267,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameSelectMaxPlayersQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId());
+                cclhTelegramService.gameSelectMaxPlayersQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -303,8 +279,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameSelectNRoundsToEndQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId());
+                cclhTelegramService.gameSelectNRoundsToEndQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -316,8 +291,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameSelectNPointsToWinQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId());
+                cclhTelegramService.gameSelectNPointsToWinQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -329,8 +303,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameChangeMode(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId(), data);
+                cclhTelegramService.gameChangeMode(callbackQuery.getMessage().getChatId(), callbackQuery.getId(), data);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -342,8 +315,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameChangeDictionary(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId(), data);
+                cclhTelegramService.gameChangeDictionary(callbackQuery.getMessage().getChatId(), callbackQuery.getId(), data);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -355,8 +327,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameChangeMaxPlayers(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId(), data);
+                cclhTelegramService.gameChangeMaxPlayers(callbackQuery.getMessage().getChatId(), callbackQuery.getId(), data);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -368,8 +339,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameChangeNRoundsToEnd(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId(), data);
+                cclhTelegramService.gameChangeNRoundsToEnd(callbackQuery.getMessage().getChatId(), callbackQuery.getId(), data);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -381,8 +351,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameChangeNCardsToWin(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId(), data);
+                cclhTelegramService.gameChangeNCardsToWin(callbackQuery.getMessage().getChatId(), callbackQuery.getId(), data);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -394,8 +363,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameJoinQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId());
+                cclhTelegramService.gameJoinQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -419,8 +387,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameStartQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId());
+                cclhTelegramService.gameStartQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
@@ -456,8 +423,7 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                cclhTelegramService.gameDeleteGroupQuery(callbackQuery.getMessage().getChatId(),
-                    callbackQuery.getId());
+                cclhTelegramService.gameDeleteGroupQuery(callbackQuery.getMessage().getChatId(), callbackQuery.getId());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }

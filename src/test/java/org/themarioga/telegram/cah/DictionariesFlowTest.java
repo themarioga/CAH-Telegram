@@ -80,15 +80,12 @@ class DictionariesFlowTest extends BotFlowTest {
 
         RecordingBotMessageService.Sent list = messages.lastTo(OWNER);
         Assertions.assertNotNull(list);
-        Assertions.assertTrue(list.text().contains("1 - Primero"),
-                () -> "la lista debería ir numerada: " + list.text());
+        Assertions.assertTrue(list.text().contains("1 - Primero"), () -> "la lista debería ir numerada: " + list.text());
 
         messages.clear();
         dictionaries.selectDictionaryToRename(1, "1");
 
-        Assertions.assertEquals("/rename__" + dictionaryNamed("Primero").getId(),
-                messages.pendingReplyFor(OWNER),
-                "el número corto tiene que resolver al diccionario que se enseñó");
+        Assertions.assertEquals("/rename__" + dictionaryNamed("Primero").getId(), messages.pendingReplyFor(OWNER), "el número corto tiene que resolver al diccionario que se enseñó");
     }
 
     @Test
@@ -112,9 +109,7 @@ class DictionariesFlowTest extends BotFlowTest {
         dictionaries.addWhiteCard(dictionary.getId(), "Una carta blanca");
 
         Assertions.assertEquals(1, cardService.countCardsByDictionaryAndType(dictionary, CardTypeEnum.WHITE));
-        Assertions.assertEquals("/add_white_card__" + dictionary.getId(),
-                messages.pendingReplyFor(OWNER),
-                "tras añadir una carta debe quedar preparada la siguiente");
+        Assertions.assertEquals("/add_white_card__" + dictionary.getId(), messages.pendingReplyFor(OWNER), "tras añadir una carta debe quedar preparada la siguiente");
     }
 
     @Test
@@ -125,8 +120,7 @@ class DictionariesFlowTest extends BotFlowTest {
         dictionaries.addWhiteCard(dictionary.getId(), ":cancel:");
 
         Assertions.assertEquals(0, cardService.countCardsByDictionaryAndType(dictionary, CardTypeEnum.WHITE));
-        Assertions.assertTrue(messages.lastTo(OWNER).callbackData().contains("add_white_cards__" + dictionary.getId()),
-                "al cancelar vuelve el menú de cartas");
+        Assertions.assertTrue(messages.lastTo(OWNER).callbackData().contains("add_white_cards__" + dictionary.getId()), "al cancelar vuelve el menú de cartas");
     }
 
     /**
@@ -152,10 +146,7 @@ class DictionariesFlowTest extends BotFlowTest {
     }
 
     private Dictionary dictionaryNamed(String name) {
-        return dictionaryService.getDictionariesByCreator(owner).stream()
-                .filter(d -> d.getName().equals(name))
-                .findFirst()
-                .orElseThrow();
+        return dictionaryService.getDictionariesByCreator(owner).stream().filter(d -> d.getName().equals(name)).findFirst().orElseThrow();
     }
 
 }

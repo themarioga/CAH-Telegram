@@ -85,8 +85,7 @@ class GameFlowTest extends BotFlowTest {
         Assertions.assertNotNull(groupMenu);
         Assertions.assertTrue(groupMenu.callbackData().contains("game_join"));
         Assertions.assertTrue(groupMenu.callbackData().contains("game_configure"));
-        Assertions.assertFalse(groupMenu.callbackData().contains("game_start"),
-                "con un solo jugador todavía no se puede empezar");
+        Assertions.assertFalse(groupMenu.callbackData().contains("game_start"), "con un solo jugador todavía no se puede empezar");
     }
 
     @Test
@@ -101,8 +100,7 @@ class GameFlowTest extends BotFlowTest {
         messages.clear();
         game.gameMenuQuery(GROUP_CHAT, "cb");
 
-        Assertions.assertTrue(messages.lastTo(GROUP_CHAT).callbackData().contains("game_start"),
-                "con tres jugadores ya se puede empezar");
+        Assertions.assertTrue(messages.lastTo(GROUP_CHAT).callbackData().contains("game_start"), "con tres jugadores ya se puede empezar");
     }
 
     @Test
@@ -114,10 +112,8 @@ class GameFlowTest extends BotFlowTest {
         messages.clear();
         game.gameConfigureQuery(GROUP_CHAT, "cb");
 
-        Assertions.assertFalse(messages.answeredCallbacks().isEmpty(),
-                "al que no es creador hay que contestarle a la pulsación");
-        Assertions.assertFalse(messages.answeredCallbacks().get(0).startsWith("ERROR_"),
-                "el aviso no está traducido");
+        Assertions.assertFalse(messages.answeredCallbacks().isEmpty(), "al que no es creador hay que contestarle a la pulsación");
+        Assertions.assertFalse(messages.answeredCallbacks().get(0).startsWith("ERROR_"), "el aviso no está traducido");
     }
 
     /**
@@ -154,8 +150,7 @@ class GameFlowTest extends BotFlowTest {
         }
 
         Game voting = gameService.getByRoom(room());
-        Assertions.assertEquals(RoundStatusEnum.VOTING, voting.getCurrentRound().getStatus(),
-                "cuando juegan todos, la ronda pasa a votación");
+        Assertions.assertEquals(RoundStatusEnum.VOTING, voting.getCurrentRound().getStatus(), "cuando juegan todos, la ronda pasa a votación");
         Assertions.assertEquals(3, voting.getCurrentRound().getPlayedCards().size());
     }
 
@@ -185,8 +180,7 @@ class GameFlowTest extends BotFlowTest {
         game.gameDeleteGroupQuery(GROUP_CHAT, "cb");
 
         Assertions.assertNull(gameService.getByRoom(room()), "la partida tiene que desaparecer");
-        Assertions.assertTrue(messages.deletedFrom().containsAll(List.of(CREATOR, PLAYER_TWO, PLAYER_THREE)),
-                "hay que borrar la mano de cada jugador de su privado");
+        Assertions.assertTrue(messages.deletedFrom().containsAll(List.of(CREATOR, PLAYER_TWO, PLAYER_THREE)), "hay que borrar la mano de cada jugador de su privado");
     }
 
     // ///////////// Apoyo //////////////////
@@ -226,10 +220,7 @@ class GameFlowTest extends BotFlowTest {
         logInAs(telegramId, telegramId, "private");
 
         Game current = gameService.getByRoom(room());
-        var player = current.getPlayers().stream()
-                .filter(p -> p.getUser().getUsername().equals("u" + telegramId)
-                        || p.getUser().getUsername().equals(aliasOf(telegramId)))
-                .findFirst().orElseThrow();
+        var player = current.getPlayers().stream().filter(p -> p.getUser().getUsername().equals("u" + telegramId) || p.getUser().getUsername().equals(aliasOf(telegramId))).findFirst().orElseThrow();
 
         List<PlayerHandCard> hand = player.getHand();
         Assertions.assertFalse(hand.isEmpty(), "el jugador no tiene cartas en la mano");

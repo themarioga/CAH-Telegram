@@ -87,9 +87,7 @@ public class TelegramGame implements Serializable {
 
     @Override
     public String toString() {
-        return "TelegramGame{game=" + game + ", firstMessageId=" + firstMessageId
-                + ", creatorMessageId=" + creatorMessageId
-                + ", currentRoundMessageId=" + currentRoundMessageId + '}';
+        return "TelegramGame{game=" + game + ", firstMessageId=" + firstMessageId + ", creatorMessageId=" + creatorMessageId + ", currentRoundMessageId=" + currentRoundMessageId + '}';
     }
 
 }

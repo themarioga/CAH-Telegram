@@ -55,17 +55,13 @@ public class CAHTelegramBotsConfig {
 
     @Bean("cclhBotMessageService")
     @ConditionalOnProperty(prefix = "cclh.bot", name = "enabled", havingValue = "true")
-    public BotMessageService cclhBotMessageService(@Qualifier("cclhTelegramClient") TelegramClient client,
-                                                   PendingReplyRegistry pendingReplies,
-                                                   @Value("${cclh.bot.name}") String name) {
+    public BotMessageService cclhBotMessageService(@Qualifier("cclhTelegramClient") TelegramClient client, PendingReplyRegistry pendingReplies, @Value("${cclh.bot.name}") String name) {
         return new BotMessageServiceImpl(client, name, pendingReplies);
     }
 
     @Bean("dictionariesBotMessageService")
     @ConditionalOnProperty(prefix = "dictionaries.bot", name = "enabled", havingValue = "true")
-    public BotMessageService dictionariesBotMessageService(@Qualifier("dictionariesTelegramClient") TelegramClient client,
-                                                   PendingReplyRegistry pendingReplies,
-                                                           @Value("${dictionaries.bot.name}") String name) {
+    public BotMessageService dictionariesBotMessageService(@Qualifier("dictionariesTelegramClient") TelegramClient client, PendingReplyRegistry pendingReplies, @Value("${dictionaries.bot.name}") String name) {
         return new BotMessageServiceImpl(client, name, pendingReplies);
     }
 
@@ -75,23 +71,13 @@ public class CAHTelegramBotsConfig {
 
         @Bean("cclhBot")
         @ConditionalOnProperty(prefix = "cclh.bot", name = "enabled", havingValue = "true")
-        public SpringLongPollingBot cclhBot(@Value("${cclh.bot.token}") String token,
-                                            @Value("${cclh.bot.name}") String name,
-                                            @Qualifier("cclhTelegramClient") TelegramClient client,
-                                            @Qualifier("cclhBotApplicationService") ApplicationService applicationService,
-                                            PendingReplyRegistry pendingReplies,
-                                            List<UpdateInterceptor> interceptors) {
+        public SpringLongPollingBot cclhBot(@Value("${cclh.bot.token}") String token, @Value("${cclh.bot.name}") String name, @Qualifier("cclhTelegramClient") TelegramClient client, @Qualifier("cclhBotApplicationService") ApplicationService applicationService, PendingReplyRegistry pendingReplies, List<UpdateInterceptor> interceptors) {
             return new LongPollingBotServiceImpl(token, name, client, applicationService, pendingReplies, interceptors);
         }
 
         @Bean("dictionariesBot")
         @ConditionalOnProperty(prefix = "dictionaries.bot", name = "enabled", havingValue = "true")
-        public SpringLongPollingBot dictionariesBot(@Value("${dictionaries.bot.token}") String token,
-                                                    @Value("${dictionaries.bot.name}") String name,
-                                                    @Qualifier("dictionariesTelegramClient") TelegramClient client,
-                                                    @Qualifier("dictionariesBotApplicationService") ApplicationService applicationService,
-                                                    PendingReplyRegistry pendingReplies,
-                                                    List<UpdateInterceptor> interceptors) {
+        public SpringLongPollingBot dictionariesBot(@Value("${dictionaries.bot.token}") String token, @Value("${dictionaries.bot.name}") String name, @Qualifier("dictionariesTelegramClient") TelegramClient client, @Qualifier("dictionariesBotApplicationService") ApplicationService applicationService, PendingReplyRegistry pendingReplies, List<UpdateInterceptor> interceptors) {
             return new LongPollingBotServiceImpl(token, name, client, applicationService, pendingReplies, interceptors);
         }
 
@@ -103,32 +89,16 @@ public class CAHTelegramBotsConfig {
 
         @Bean("cclhBot")
         @ConditionalOnProperty(prefix = "cclh.bot", name = "enabled", havingValue = "true")
-        public SpringTelegramWebhookBot cclhBot(@Value("${cclh.bot.token}") String token,
-                                                @Value("${cclh.bot.name}") String name,
-                                                @Value("${cclh.bot.webhook.url}") String webhookUrl,
-                                                @Value("${cclh.bot.webhook.cert.path:}") String certPath,
-                                                @Qualifier("cclhTelegramClient") TelegramClient client,
-                                                @Qualifier("cclhBotApplicationService") ApplicationService applicationService,
-                                                PendingReplyRegistry pendingReplies,
-                                                List<UpdateInterceptor> interceptors) {
-            BotService botService = new WebhookBotServiceImpl(token, name, webhookUrl, certPath, client,
-                    applicationService, pendingReplies, interceptors);
+        public SpringTelegramWebhookBot cclhBot(@Value("${cclh.bot.token}") String token, @Value("${cclh.bot.name}") String name, @Value("${cclh.bot.webhook.url}") String webhookUrl, @Value("${cclh.bot.webhook.cert.path:}") String certPath, @Qualifier("cclhTelegramClient") TelegramClient client, @Qualifier("cclhBotApplicationService") ApplicationService applicationService, PendingReplyRegistry pendingReplies, List<UpdateInterceptor> interceptors) {
+            BotService botService = new WebhookBotServiceImpl(token, name, webhookUrl, certPath, client, applicationService, pendingReplies, interceptors);
 
             return (SpringTelegramWebhookBot) botService.getBean();
         }
 
         @Bean("dictionariesBot")
         @ConditionalOnProperty(prefix = "dictionaries.bot", name = "enabled", havingValue = "true")
-        public SpringTelegramWebhookBot dictionariesBot(@Value("${dictionaries.bot.token}") String token,
-                                                        @Value("${dictionaries.bot.name}") String name,
-                                                        @Value("${dictionaries.bot.webhook.url}") String webhookUrl,
-                                                        @Value("${dictionaries.bot.webhook.cert.path:}") String certPath,
-                                                        @Qualifier("dictionariesTelegramClient") TelegramClient client,
-                                                        @Qualifier("dictionariesBotApplicationService") ApplicationService applicationService,
-                                                        PendingReplyRegistry pendingReplies,
-                                                        List<UpdateInterceptor> interceptors) {
-            BotService botService = new WebhookBotServiceImpl(token, name, webhookUrl, certPath, client,
-                    applicationService, pendingReplies, interceptors);
+        public SpringTelegramWebhookBot dictionariesBot(@Value("${dictionaries.bot.token}") String token, @Value("${dictionaries.bot.name}") String name, @Value("${dictionaries.bot.webhook.url}") String webhookUrl, @Value("${dictionaries.bot.webhook.cert.path:}") String certPath, @Qualifier("dictionariesTelegramClient") TelegramClient client, @Qualifier("dictionariesBotApplicationService") ApplicationService applicationService, PendingReplyRegistry pendingReplies, List<UpdateInterceptor> interceptors) {
+            BotService botService = new WebhookBotServiceImpl(token, name, webhookUrl, certPath, client, applicationService, pendingReplies, interceptors);
 
             return (SpringTelegramWebhookBot) botService.getBean();
         }

@@ -29,14 +29,7 @@ import org.themarioga.commons.telegram.services.intf.TelegramUserService;
  * <p>
  * La sesión se monta a mano, que es lo que hace el interceptor de updates en producción.
  */
-@SpringBootTest(properties = {
-        "cclh.bot.enabled=true",
-        "cclh.bot.token=111:fake-token-de-pruebas",
-        "cclh.bot.name=cclhtestbot",
-        "dictionaries.bot.enabled=true",
-        "dictionaries.bot.token=222:fake-token-de-pruebas",
-        "dictionaries.bot.name=dictionariestestbot",
-        "telegram.bots.admin-ids=1"})
+@SpringBootTest(properties = {"cclh.bot.enabled=true", "cclh.bot.token=111:fake-token-de-pruebas", "cclh.bot.name=cclhtestbot", "dictionaries.bot.enabled=true", "dictionaries.bot.token=222:fake-token-de-pruebas", "dictionaries.bot.name=dictionariestestbot", "telegram.bots.admin-ids=1"})
 @Transactional
 public abstract class BotFlowTest {
 
@@ -56,10 +49,8 @@ public abstract class BotFlowTest {
      * que es el mecanismo previsto para reemplazar un bean concreto: registrar otro con el mismo
      * nombre depende del orden en que Spring los procese y no es fiable.
      */
-    protected static final RecordingBotMessageService CCLH_MESSAGES =
-            new RecordingBotMessageService("cclhtestbot", new PendingReplyRegistry());
-    protected static final RecordingBotMessageService DICTIONARIES_MESSAGES =
-            new RecordingBotMessageService("dictionariestestbot", new PendingReplyRegistry());
+    protected static final RecordingBotMessageService CCLH_MESSAGES = new RecordingBotMessageService("cclhtestbot", new PendingReplyRegistry());
+    protected static final RecordingBotMessageService DICTIONARIES_MESSAGES = new RecordingBotMessageService("dictionariestestbot", new PendingReplyRegistry());
 
     @TestBean(name = "cclhBotMessageService")
     private BotMessageService cclhMessaging;
@@ -108,13 +99,9 @@ public abstract class BotFlowTest {
     protected void logInAsCallback(long telegramId, Long chatId, String chatType) {
         TelegramUser telegramUser = telegramUserService.getByTelegramId(telegramId);
 
-        SecurityUtils.setUserDetails(new TelegramUserDetails(telegramUser,
-                admins.contains(telegramId) ? UserRole.ADMIN : UserRole.USER));
+        SecurityUtils.setUserDetails(new TelegramUserDetails(telegramUser, admins.contains(telegramId) ? UserRole.ADMIN : UserRole.USER));
 
-        Message message = Message.builder().messageId(1)
-                .from(telegramUser(telegramId, "u" + telegramId))
-                .chat(Chat.builder().id(chatId).type(chatType).title("Grupo de pruebas").build())
-                .build();
+        Message message = Message.builder().messageId(1).from(telegramUser(telegramId, "u" + telegramId)).chat(Chat.builder().id(chatId).type(chatType).title("Grupo de pruebas").build()).build();
 
         CallbackQuery callbackQuery = new CallbackQuery();
         callbackQuery.setId("callback-de-pruebas");
@@ -129,25 +116,18 @@ public abstract class BotFlowTest {
     }
 
     private void logIn(TelegramUser telegramUser, long telegramId, Long chatId, String chatType) {
-        SecurityUtils.setUserDetails(new TelegramUserDetails(telegramUser,
-                admins.contains(telegramId) ? UserRole.ADMIN : UserRole.USER));
+        SecurityUtils.setUserDetails(new TelegramUserDetails(telegramUser, admins.contains(telegramId) ? UserRole.ADMIN : UserRole.USER));
 
         TelegramContextHolder.set(TelegramContext.from(
                 update(telegramId, chatId != null ? chatId : telegramId, chatType), "cclhtestbot", roomResolver));
     }
 
     protected org.telegram.telegrambots.meta.api.objects.User telegramUser(long telegramId, String alias) {
-        return org.telegram.telegrambots.meta.api.objects.User.builder()
-                .id(telegramId).isBot(false).firstName(alias).userName(alias).languageCode("es").build();
+        return org.telegram.telegrambots.meta.api.objects.User.builder().id(telegramId).isBot(false).firstName(alias).userName(alias).languageCode("es").build();
     }
 
     private Update update(long telegramId, long chatId, String chatType) {
-        Message message = Message.builder()
-                .messageId(1)
-                .from(telegramUser(telegramId, "u" + telegramId))
-                .chat(Chat.builder().id(chatId).type(chatType).title("Grupo de pruebas").build())
-                .text("/noop")
-                .build();
+        Message message = Message.builder().messageId(1).from(telegramUser(telegramId, "u" + telegramId)).chat(Chat.builder().id(chatId).type(chatType).title("Grupo de pruebas").build()).text("/noop").build();
 
         Update update = new Update();
         update.setMessage(message);

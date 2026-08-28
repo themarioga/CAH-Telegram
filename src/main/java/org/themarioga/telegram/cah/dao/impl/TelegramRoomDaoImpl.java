@@ -15,18 +15,12 @@ public class TelegramRoomDaoImpl extends AbstractHibernateDao<TelegramRoom> impl
 
     @Override
     public TelegramRoom getByChatId(Long chatId) {
-        return getCurrentSession()
-                .createQuery("SELECT tr FROM TelegramRoom tr JOIN FETCH tr.room WHERE tr.id = :chatId", TelegramRoom.class)
-                .setParameter("chatId", chatId)
-                .getSingleResultOrNull();
+        return getCurrentSession().createQuery("SELECT tr FROM TelegramRoom tr JOIN FETCH tr.room WHERE tr.id = :chatId", TelegramRoom.class).setParameter("chatId", chatId).getSingleResultOrNull();
     }
 
     @Override
     public TelegramRoom getByRoom(Room room) {
-        return getCurrentSession()
-                .createQuery("SELECT tr FROM TelegramRoom tr WHERE tr.room = :room", TelegramRoom.class)
-                .setParameter("room", room)
-                .getSingleResultOrNull();
+        return getCurrentSession().createQuery("SELECT tr FROM TelegramRoom tr WHERE tr.room = :room", TelegramRoom.class).setParameter("room", room).getSingleResultOrNull();
     }
 
 }

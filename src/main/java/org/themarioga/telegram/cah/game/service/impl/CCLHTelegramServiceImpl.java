@@ -70,12 +70,12 @@ import java.util.UUID;
  * diccionarios (identificadores UUID, el chat que sale de la sesión, errores traducidos en un
  * sitio), aquí hay dos cosas propias:
  * <ul>
- *   <li>Se trabaja sobre <b>dos chats a la vez</b>: el grupo donde va la partida y el privado de
- *       cada jugador. Cada mensaje que se edita o se borra hay que dirigirlo al chat correcto, y
- *       ninguno de esos identificadores está ya en las entidades del motor.</li>
- *   <li>El flujo de creación <b>encadena envíos asíncronos</b> para quedarse con los identificadores
- *       de los mensajes. La continuación corre en otro hilo, así que la sesión se lleva con
- *       {@link TelegramSession}.</li>
+ * <li>Se trabaja sobre <b>dos chats a la vez</b>: el grupo donde va la partida y el privado de
+ * cada jugador. Cada mensaje que se edita o se borra hay que dirigirlo al chat correcto, y
+ * ninguno de esos identificadores está ya en las entidades del motor.</li>
+ * <li>El flujo de creación <b>encadena envíos asíncronos</b> para quedarse con los identificadores
+ * de los mensajes. La continuación corre en otro hilo, así que la sesión se lleva con
+ * {@link TelegramSession}.</li>
  * </ul>
  */
 @Service
@@ -106,15 +106,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
     private Boolean canSendGlobalMessages = Boolean.TRUE;
 
     @Autowired
-    public CCLHTelegramServiceImpl(@Qualifier("cclhBotMessageService") BotMessageService botMessageService,
-                                   CAHService cahService, GameService gameService, PlayerService playerService,
-                                   RoundService roundService, CardService cardService,
-                                   DictionaryService dictionaryService,
-                                   UserService userService, TelegramUserService telegramUserService,
-                                   TelegramGameService telegramGameService, TelegramRoomResolver roomResolver,
-                                   I18NService i18NService, ErrorMessageResolver errorMessageResolver,
-                                   GameConfig gameConfig, BotProperties botProperties, RoomService roomService,
-                                   TelegramAdmins admins) {
+    public CCLHTelegramServiceImpl(@Qualifier("cclhBotMessageService") BotMessageService botMessageService, CAHService cahService, GameService gameService, PlayerService playerService, RoundService roundService, CardService cardService, DictionaryService dictionaryService, UserService userService, TelegramUserService telegramUserService, TelegramGameService telegramGameService, TelegramRoomResolver roomResolver, I18NService i18NService, ErrorMessageResolver errorMessageResolver, GameConfig gameConfig, BotProperties botProperties, RoomService roomService, TelegramAdmins admins) {
         this.botMessageService = botMessageService;
         this.cahService = cahService;
         this.gameService = gameService;
@@ -162,8 +154,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
 
         InlineKeyboardMarkup.InlineKeyboardMarkupBuilder keyboardBuilder = InlineKeyboardMarkup.builder();
         for (Lang lang : i18NService.getLanguages()) {
-            keyboardBuilder.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(lang.getName())
-                    .callbackData("change_user_lang__" + lang.getId()).build()));
+            keyboardBuilder.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(lang.getName()).callbackData("change_user_lang__" + lang.getId()).build()));
         }
 
         botMessageService.sendMessage(chatId(), i18NService.get("USER_LANG_CHANGE"), keyboardBuilder.build());
@@ -195,23 +186,15 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         // los updates; la sesión se lleva a la continuación, que corre en otro hilo.
         TelegramSession session = TelegramSession.capture();
 
-        botMessageService.sendMessageAsync(chatId, creating)
-                .thenCompose(group -> botMessageService.sendMessageAsync(creatorChatId, creating)
-                        .thenCompose(creatorMessage -> botMessageService
-                                .sendMessageAsync(creatorChatId, i18NService.get("PLAYER_JOINING"))
-                                .thenAccept(playerMessage -> session.run(() -> createGame(chatId, chatTitle,
-                                        group.getMessageId(), creatorMessage.getMessageId(),
-                                        playerMessage.getMessageId())))))
-                .exceptionally(e -> {
-                    logger.error("No se ha podido crear la partida en el chat {}: {}", chatId, e.getMessage(), e);
+        botMessageService.sendMessageAsync(chatId, creating).thenCompose(group -> botMessageService.sendMessageAsync(creatorChatId, creating).thenCompose(creatorMessage -> botMessageService.sendMessageAsync(creatorChatId, i18NService.get("PLAYER_JOINING")).thenAccept(playerMessage -> session.run(() -> createGame(chatId, chatTitle, group.getMessageId(), creatorMessage.getMessageId(), playerMessage.getMessageId()))))).exceptionally(e -> {
+            logger.error("No se ha podido crear la partida en el chat {}: {}", chatId, e.getMessage(), e);
 
-                    return null;
-                });
+            return null;
+        });
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = ApplicationException.class)
-    protected void createGame(long chatId, String chatTitle, int groupMessageId, int creatorMessageId,
-                              int playerMessageId) {
+    protected void createGame(long chatId, String chatTitle, int groupMessageId, int creatorMessageId, int playerMessageId) {
         try {
             Room room = roomResolver.resolveRoom(chatId, chatTitle);
 
@@ -259,13 +242,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         guarded(() -> {
             TelegramGame telegramGame = getGameAndCheckCreator(chatId);
 
-            editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame) + i18NService.get("GAME_SELECT_MODE"),
-                    InlineKeyboardMarkup.builder()
-                            .keyboardRow(new InlineKeyboardRow(button("GAME_MODE_DEMOCRACY", "game_change_mode__0")))
-                            .keyboardRow(new InlineKeyboardRow(button("GAME_MODE_CLASSIC", "game_change_mode__1")))
-                            .keyboardRow(new InlineKeyboardRow(button("GAME_MODE_DICTATORSHIP", "game_change_mode__2")))
-                            .keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_configure")))
-                            .build());
+            editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame) + i18NService.get("GAME_SELECT_MODE"), InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(button("GAME_MODE_DEMOCRACY", "game_change_mode__0"))).keyboardRow(new InlineKeyboardRow(button("GAME_MODE_CLASSIC", "game_change_mode__1"))).keyboardRow(new InlineKeyboardRow(button("GAME_MODE_DICTATORSHIP", "game_change_mode__2"))).keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_configure"))).build());
         });
     }
 
@@ -277,13 +254,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         guarded(() -> {
             TelegramGame telegramGame = getGameAndCheckCreator(chatId);
 
-            editGroupMessage(telegramGame,
-                    getGameCreatedGroupMessage(telegramGame) + i18NService.get("GAME_PUNCTUATION_MODE"),
-                    InlineKeyboardMarkup.builder()
-                            .keyboardRow(new InlineKeyboardRow(button("GAME_TYPE_ROUNDS", "game_sel_n_rounds")))
-                            .keyboardRow(new InlineKeyboardRow(button("GAME_TYPE_POINTS", "game_sel_n_points")))
-                            .keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_configure")))
-                            .build());
+            editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame) + i18NService.get("GAME_PUNCTUATION_MODE"), InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(button("GAME_TYPE_ROUNDS", "game_sel_n_rounds"))).keyboardRow(new InlineKeyboardRow(button("GAME_TYPE_POINTS", "game_sel_n_points"))).keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_configure"))).build());
         });
     }
 
@@ -302,8 +273,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
     public void gameSelectMaxPlayersQuery(long chatId, String callbackQueryId) {
-        selectNumber(chatId, "game_change_max_players__", gameConfig.getDefaultMinNumberOfPlayers(),
-                gameConfig.getDefaultMaxNumberOfPlayers(), "GAME_SELECT_MAX_PLAYERS");
+        selectNumber(chatId, "game_change_max_players__", gameConfig.getDefaultMinNumberOfPlayers(), gameConfig.getDefaultMaxNumberOfPlayers(), "GAME_SELECT_MAX_PLAYERS");
     }
 
     @Override
@@ -317,42 +287,34 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
             int pageNumber = Integer.parseInt(page);
             int perPage = botProperties.getDictionariesPerPage();
             long total = dictionaryService.getDictionaryCountForTable(user);
-            List<Dictionary> dictionaries =
-                    dictionaryService.getDictionariesPaginatedForTable(user, (pageNumber - 1) * perPage, perPage);
+            List<Dictionary> dictionaries = dictionaryService.getDictionariesPaginatedForTable(user, (pageNumber - 1) * perPage, perPage);
 
             InlineKeyboardMarkup.InlineKeyboardMarkupBuilder keyboard = InlineKeyboardMarkup.builder();
             if (pageNumber > 1) {
-                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text("⬅")
-                        .callbackData("game_sel_dictionary__" + (pageNumber - 1)).build()));
+                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text("⬅").callbackData("game_sel_dictionary__" + (pageNumber - 1)).build()));
             }
             for (Dictionary dictionary : dictionaries) {
-                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(dictionary.getName())
-                        .callbackData("game_change_dictionary__" + dictionary.getId()).build()));
+                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(dictionary.getName()).callbackData("game_change_dictionary__" + dictionary.getId()).build()));
             }
             if (total > (long) pageNumber * perPage) {
-                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text("➡")
-                        .callbackData("game_sel_dictionary__" + (pageNumber + 1)).build()));
+                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text("➡").callbackData("game_sel_dictionary__" + (pageNumber + 1)).build()));
             }
             keyboard.keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_configure")));
 
-            editGroupMessage(telegramGame,
-                    getGameCreatedGroupMessage(telegramGame) + i18NService.get("GAME_DICTIONARY_SELECT"),
-                    keyboard.build());
+            editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame) + i18NService.get("GAME_DICTIONARY_SELECT"), keyboard.build());
         });
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
     public void gameChangeMode(long chatId, String callbackQueryId, String data) {
-        changeSetting(chatId, game -> cahService.setVotationMode(game.getRoom(),
-                VotationModeEnum.values()[Integer.parseInt(data)]));
+        changeSetting(chatId, game -> cahService.setVotationMode(game.getRoom(), VotationModeEnum.values()[Integer.parseInt(data)]));
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
     public void gameChangeDictionary(long chatId, String callbackQueryId, String data) {
-        changeSetting(chatId, game -> cahService.setDictionary(game.getRoom(),
-                dictionaryService.getDictionaryById(UUID.fromString(data))));
+        changeSetting(chatId, game -> cahService.setDictionary(game.getRoom(), dictionaryService.getDictionaryById(UUID.fromString(data))));
     }
 
     @Override
@@ -393,13 +355,11 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
             long playerChatId = chatId();
             TelegramSession session = TelegramSession.capture();
 
-            botMessageService.sendMessageAsync(playerChatId, i18NService.get("PLAYER_JOINING"))
-                    .thenAccept(joining -> session.run(() -> joinGame(chatId, joining.getMessageId(), callbackQueryId)))
-                    .exceptionally(e -> {
-                        logger.error("No se ha podido unir al jugador {}: {}", playerChatId, e.getMessage(), e);
+            botMessageService.sendMessageAsync(playerChatId, i18NService.get("PLAYER_JOINING")).thenAccept(joining -> session.run(() -> joinGame(chatId, joining.getMessageId(), callbackQueryId))).exceptionally(e -> {
+                logger.error("No se ha podido unir al jugador {}: {}", playerChatId, e.getMessage(), e);
 
-                        return null;
-                    });
+                return null;
+            });
         });
     }
 
@@ -412,10 +372,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
 
             telegramGameService.createPlayer(playerOf(game, requireSession()), playerMessageId);
 
-            botMessageService.editMessage(chatId(), playerMessageId, i18NService.get("PLAYER_JOINED"),
-                    InlineKeyboardMarkup.builder()
-                            .keyboardRow(new InlineKeyboardRow(button("GAME_LEAVE", "game_leave")))
-                            .build());
+            botMessageService.editMessage(chatId(), playerMessageId, i18NService.get("PLAYER_JOINED"), InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(button("GAME_LEAVE", "game_leave"))).build());
 
             sendMainMenu(telegramGame);
         });
@@ -553,8 +510,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
 
         Long groupChatId = telegramGameService.getChatId(game.getRoom());
         if (groupChatId != null && winner != null) {
-            botMessageService.sendMessage(groupChatId, MessageFormat.format(i18NService.get("GAME_END_GAME"),
-                    winner.getUser().getName(), winner.getPoints()));
+            botMessageService.sendMessage(groupChatId, MessageFormat.format(i18NService.get("GAME_END_GAME"), winner.getUser().getName(), winner.getPoints()));
         }
 
         List<PlayerMessage> playerMessages = collectPlayerMessages(game);
@@ -579,23 +535,18 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
 
         Round round = telegramGame.getGame().getCurrentRound();
 
-        botMessageService.editMessage(playerChatId, telegramPlayer.getHandMessageId(),
-                MessageFormat.format(i18NService.get("PLAYER_SELECTED_CARD"), round.getRoundNumber(),
-                        round.getRoundBlackCard().getText(), player.getPlayedCard().getCard().getText()));
+        botMessageService.editMessage(playerChatId, telegramPlayer.getHandMessageId(), MessageFormat.format(i18NService.get("PLAYER_SELECTED_CARD"), round.getRoundNumber(), round.getRoundBlackCard().getText(), player.getPlayedCard().getCard().getText()));
     }
 
     private void showVoteToItsVoter(TelegramGame telegramGame, Player player) {
         TelegramPlayer telegramPlayer = telegramGameService.getByPlayer(player);
         Long playerChatId = chatIdOf(player.getUser());
-        if (telegramPlayer == null || playerChatId == null
-                || player.getPlayedCard() == null || player.getVotedCard() == null) return;
+        if (telegramPlayer == null || playerChatId == null || player.getPlayedCard() == null || player.getVotedCard() == null)
+            return;
 
         Round round = telegramGame.getGame().getCurrentRound();
 
-        botMessageService.editMessage(playerChatId, telegramPlayer.getHandMessageId(),
-                MessageFormat.format(i18NService.get("PLAYER_VOTED_CARD"), round.getRoundNumber(),
-                        round.getRoundBlackCard().getText(), player.getPlayedCard().getCard().getText(),
-                        player.getVotedCard().getCard().getText()));
+        botMessageService.editMessage(playerChatId, telegramPlayer.getHandMessageId(), MessageFormat.format(i18NService.get("PLAYER_VOTED_CARD"), round.getRoundNumber(), round.getRoundBlackCard().getText(), player.getPlayedCard().getCard().getText(), player.getVotedCard().getCard().getText()));
     }
 
     /**
@@ -611,15 +562,10 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         for (PlayedCard playedCard : round.getPlayedCards()) {
             if (Objects.equals(playedCard.getPlayer().getId(), player.getId())) continue;
 
-            keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                    .text(playedCard.getCard().getText())
-                    .callbackData("vote_card__" + playedCard.getCard().getId()).build()));
+            keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(playedCard.getCard().getText()).callbackData("vote_card__" + playedCard.getCard().getId()).build()));
         }
 
-        botMessageService.editMessage(playerChatId, telegramPlayer.getHandMessageId(),
-                MessageFormat.format(i18NService.get("PLAYER_VOTE_CARD"), round.getRoundNumber(),
-                        round.getRoundBlackCard().getText(), player.getPlayedCard().getCard().getText()),
-                keyboard.build());
+        botMessageService.editMessage(playerChatId, telegramPlayer.getHandMessageId(), MessageFormat.format(i18NService.get("PLAYER_VOTE_CARD"), round.getRoundNumber(), round.getRoundBlackCard().getText(), player.getPlayedCard().getCard().getText()), keyboard.build());
     }
 
     private void editRoundMessage(TelegramGame telegramGame, String message) {
@@ -655,8 +601,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
             // Quien no es el creador solo puede pedir el borrado, y solo con la partida en marcha.
             // El código anterior llegaba aquí capturando la excepción de "no eres el dueño".
             if (game.getStatus() != GameStatusEnum.STARTED) {
-                botMessageService.answerCallbackQuery(callbackQueryId,
-                        i18NService.get("ERROR_GAME_ONLY_CREATOR_CAN_DELETE"));
+                botMessageService.answerCallbackQuery(callbackQueryId, i18NService.get("ERROR_GAME_ONLY_CREATOR_CAN_DELETE"));
                 return;
             }
 
@@ -723,8 +668,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
                     botMessageService.sendMessage(creatorChatId, i18NService.get("GAME_DELETION_FORCED"));
                 }
             } catch (ApplicationException e) {
-                logger.error("No se ha podido borrar la partida {}: {}",
-                        telegramGame.getGame().getId(), e.getMessage(), e);
+                logger.error("No se ha podido borrar la partida {}: {}", telegramGame.getGame().getId(), e.getMessage(), e);
             }
         }
 
@@ -763,15 +707,13 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
     private void sendGlobalMessage(long chatId, String message, java.util.function.Consumer<Boolean> setActive) {
         TelegramSession session = TelegramSession.capture();
 
-        botMessageService.sendMessageAsync(chatId, message)
-                .thenAccept(sent -> session.run(() -> setActive.accept(true)))
-                .exceptionally(e -> {
-                    logger.warn("Desactivando el chat {} tras fallar el envío: {}", chatId, e.getMessage());
+        botMessageService.sendMessageAsync(chatId, message).thenAccept(sent -> session.run(() -> setActive.accept(true))).exceptionally(e -> {
+            logger.warn("Desactivando el chat {} tras fallar el envío: {}", chatId, e.getMessage());
 
-                    session.run(() -> setActive.accept(false));
+            session.run(() -> setActive.accept(false));
 
-                    return null;
-                });
+            return null;
+        });
     }
 
     @Override
@@ -781,8 +723,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
 
         canSendGlobalMessages = !canSendGlobalMessages;
 
-        notifyAdmins(i18NService.get(Boolean.TRUE.equals(canSendGlobalMessages)
-                ? "GAME_GLOBAL_MESSAGES_ON" : "GAME_GLOBAL_MESSAGES_OFF"));
+        notifyAdmins(i18NService.get(Boolean.TRUE.equals(canSendGlobalMessages) ? "GAME_GLOBAL_MESSAGES_ON" : "GAME_GLOBAL_MESSAGES_OFF"));
     }
 
     private void notifyAdmins(String message) {
@@ -804,9 +745,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
     public void sendHelpMessage(long chatId) {
         BotProperties.Bot bot = botProperties.getGame();
 
-        botMessageService.sendMessage(chatId, MessageFormat.format(i18NService.get("GAME_HELP"),
-                bot.getDisplayName() + " (" + bot.getAlias() + ")", bot.getVersion(), bot.getHelpUrl(),
-                bot.getOwnerAlias()));
+        botMessageService.sendMessage(chatId, MessageFormat.format(i18NService.get("GAME_HELP"), bot.getDisplayName() + " (" + bot.getAlias() + ")", bot.getVersion(), bot.getHelpUrl(), bot.getOwnerAlias()));
     }
 
     // ///////////// Flujos compartidos //////////////////
@@ -820,8 +759,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
             InlineKeyboardMarkup.InlineKeyboardMarkupBuilder keyboard = InlineKeyboardMarkup.builder();
             InlineKeyboardRow row = new InlineKeyboardRow();
             for (int number = from; number <= to; number++) {
-                row.add(InlineKeyboardButton.builder().text(String.valueOf(number))
-                        .callbackData(callbackPrefix + number).build());
+                row.add(InlineKeyboardButton.builder().text(String.valueOf(number)).callbackData(callbackPrefix + number).build());
 
                 // De tres en tres, que es como caben en la pantalla de un móvil
                 if (row.size() == 3) {
@@ -832,8 +770,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
             if (!row.isEmpty()) keyboard.keyboardRow(row);
             keyboard.keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_configure")));
 
-            editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame) + i18NService.get(messageTag),
-                    keyboard.build());
+            editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame) + i18NService.get(messageTag), keyboard.build());
         });
     }
 
@@ -884,22 +821,11 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         Long creatorChatId = chatIdOf(telegramGame.getGame().getCreator());
         if (creatorChatId == null) return;
 
-        botMessageService.editMessage(creatorChatId, telegramGame.getCreatorMessageId(),
-                i18NService.get("PLAYER_CREATED_GAME"),
-                InlineKeyboardMarkup.builder()
-                        .keyboardRow(new InlineKeyboardRow(button("GAME_DELETE_BUTTON", "game_delete_private")))
-                        .build());
+        botMessageService.editMessage(creatorChatId, telegramGame.getCreatorMessageId(), i18NService.get("PLAYER_CREATED_GAME"), InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(button("GAME_DELETE_BUTTON", "game_delete_private"))).build());
     }
 
     private void sendConfigMenu(TelegramGame telegramGame) {
-        editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame),
-                InlineKeyboardMarkup.builder()
-                        .keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_GAME_MODE", "game_sel_mode")))
-                        .keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_PUNCTUATION_MODE", "game_sel_point_type")))
-                        .keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_DICTIONARY", "game_sel_dictionary__1")))
-                        .keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_MAX_N_PLAYERS", "game_sel_max_players")))
-                        .keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_menu")))
-                        .build());
+        editGroupMessage(telegramGame, getGameCreatedGroupMessage(telegramGame), InlineKeyboardMarkup.builder().keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_GAME_MODE", "game_sel_mode"))).keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_PUNCTUATION_MODE", "game_sel_point_type"))).keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_DICTIONARY", "game_sel_dictionary__1"))).keyboardRow(new InlineKeyboardRow(button("GAME_CHANGE_MAX_N_PLAYERS", "game_sel_max_players"))).keyboardRow(new InlineKeyboardRow(button("GO_BACK", "game_menu"))).build());
     }
 
     /**
@@ -919,24 +845,18 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         if (groupChatId != null) {
             TelegramSession session = TelegramSession.capture();
 
-            botMessageService.sendMessageAsync(groupChatId, MessageFormat.format(i18NService.get("GAME_SELECT_CARD"),
-                            round.getRoundNumber(), round.getRoundBlackCard().getText()))
-                    .thenAccept(blackCard -> session.run(() ->
-                            telegramGameService.setCurrentRoundMessageId(telegramGame, blackCard.getMessageId())))
-                    .exceptionally(e -> {
-                        logger.error("No se ha podido enviar la carta negra: {}", e.getMessage(), e);
+            botMessageService.sendMessageAsync(groupChatId, MessageFormat.format(i18NService.get("GAME_SELECT_CARD"), round.getRoundNumber(), round.getRoundBlackCard().getText())).thenAccept(blackCard -> session.run(() -> telegramGameService.setCurrentRoundMessageId(telegramGame, blackCard.getMessageId()))).exceptionally(e -> {
+                logger.error("No se ha podido enviar la carta negra: {}", e.getMessage(), e);
 
-                        return null;
-                    });
+                return null;
+            });
         }
 
         for (TelegramPlayer telegramPlayer : telegramGameService.getPlayers(game)) {
             Player player = telegramPlayer.getPlayer();
 
             // En democracia juegan todos; en el resto de modos, el presidente de la ronda no juega
-            if (game.getVotationMode() != VotationModeEnum.DEMOCRACY
-                    && round.getRoundPresident() != null
-                    && Objects.equals(round.getRoundPresident().getId(), player.getId())) {
+            if (game.getVotationMode() != VotationModeEnum.DEMOCRACY && round.getRoundPresident() != null && Objects.equals(round.getRoundPresident().getId(), player.getId())) {
                 continue;
             }
 
@@ -945,15 +865,10 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
 
             InlineKeyboardMarkup.InlineKeyboardMarkupBuilder keyboard = InlineKeyboardMarkup.builder();
             for (PlayerHandCard handCard : player.getHand()) {
-                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                        .text(handCard.getCard().getText())
-                        .callbackData("play_card__" + handCard.getCard().getId()).build()));
+                keyboard.keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder().text(handCard.getCard().getText()).callbackData("play_card__" + handCard.getCard().getId()).build()));
             }
 
-            botMessageService.editMessage(playerChatId, telegramPlayer.getHandMessageId(),
-                    MessageFormat.format(i18NService.get("PLAYER_SELECT_CARD"),
-                            round.getRoundNumber(), round.getRoundBlackCard().getText()),
-                    keyboard.build());
+            botMessageService.editMessage(playerChatId, telegramPlayer.getHandMessageId(), MessageFormat.format(i18NService.get("PLAYER_SELECT_CARD"), round.getRoundNumber(), round.getRoundBlackCard().getText()), keyboard.build());
         }
     }
 
@@ -989,18 +904,15 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         if (creatorChatId != null) botMessageService.editMessage(creatorChatId, creatorMessageId, deleted);
     }
 
-    private record PlayerMessage(long chatId, int messageId) {}
+    private record PlayerMessage(long chatId, int messageId) {
+    }
 
     private List<PlayerMessage> collectPlayerMessages(Game game) {
-        return telegramGameService.getPlayers(game).stream()
-                .map(telegramPlayer -> {
-                    Long playerChatId = chatIdOf(telegramPlayer.getPlayer().getUser());
+        return telegramGameService.getPlayers(game).stream().map(telegramPlayer -> {
+            Long playerChatId = chatIdOf(telegramPlayer.getPlayer().getUser());
 
-                    return playerChatId != null
-                            ? new PlayerMessage(playerChatId, telegramPlayer.getHandMessageId()) : null;
-                })
-                .filter(Objects::nonNull)
-                .toList();
+            return playerChatId != null ? new PlayerMessage(playerChatId, telegramPlayer.getHandMessageId()) : null;
+        }).filter(Objects::nonNull).toList();
     }
 
     /**
@@ -1126,18 +1038,13 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
 
         StringBuilder message = new StringBuilder(i18NService.get("GAME_CREATED_GROUP"));
 
-        message.append("\n").append(MessageFormat.format(i18NService.get("GAME_SELECTED_MODE"),
-                i18NService.get(votationModeTag(game.getVotationMode()))));
+        message.append("\n").append(MessageFormat.format(i18NService.get("GAME_SELECTED_MODE"), i18NService.get(votationModeTag(game.getVotationMode()))));
 
-        message.append("\n").append(MessageFormat.format(i18NService.get("GAME_SELECTED_DICTIONARY"),
-                game.getDictionary().getName()));
+        message.append("\n").append(MessageFormat.format(i18NService.get("GAME_SELECTED_DICTIONARY"), game.getDictionary().getName()));
 
-        message.append("\n").append(game.getPunctuationMode() == PunctuationModeEnum.ROUNDS
-                ? MessageFormat.format(i18NService.get("GAME_SELECTED_ROUNDS_TO_END"), game.getNumberOfRoundsToEnd())
-                : MessageFormat.format(i18NService.get("GAME_SELECTED_POINTS_TO_WIN"), game.getNumberOfPointsToWin()));
+        message.append("\n").append(game.getPunctuationMode() == PunctuationModeEnum.ROUNDS ? MessageFormat.format(i18NService.get("GAME_SELECTED_ROUNDS_TO_END"), game.getNumberOfRoundsToEnd()) : MessageFormat.format(i18NService.get("GAME_SELECTED_POINTS_TO_WIN"), game.getNumberOfPointsToWin()));
 
-        message.append("\n").append(MessageFormat.format(i18NService.get("GAME_SELECTED_MAX_PLAYER_NUMBER"),
-                game.getMaxNumberOfPlayers()));
+        message.append("\n").append(MessageFormat.format(i18NService.get("GAME_SELECTED_MAX_PLAYER_NUMBER"), game.getMaxNumberOfPlayers()));
 
         return message.toString();
     }
@@ -1153,32 +1060,26 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
             playedCards.append("<b>").append(playedCard.getCard().getText()).append("</b>").append("\n");
         }
 
-        return MessageFormat.format(i18NService.get("GAME_VOTE_CARD"), round.getRoundNumber(),
-                round.getRoundBlackCard().getText(), playedCards);
+        return MessageFormat.format(i18NService.get("GAME_VOTE_CARD"), round.getRoundNumber(), round.getRoundBlackCard().getText(), playedCards);
     }
 
     private String getGameEndRoundMessage(Round round, PlayedCard winningCard) {
         StringBuilder playedCards = new StringBuilder();
         for (PlayedCard playedCard : round.getPlayedCards()) {
-            playedCards.append("<b>").append(playedCard.getCard().getText()).append("</b>")
-                    .append(" - ").append(playedCard.getPlayer().getUser().getName()).append("\n");
+            playedCards.append("<b>").append(playedCard.getCard().getText()).append("</b>").append(" - ").append(playedCard.getPlayer().getUser().getName()).append("\n");
         }
 
         StringBuilder points = new StringBuilder();
         for (Player player : round.getGame().getPlayers()) {
-            points.append("<b>").append(player.getUser().getName()).append("</b>")
-                    .append(": ").append(player.getPoints()).append("\n");
+            points.append("<b>").append(player.getUser().getName()).append("</b>").append(": ").append(player.getPoints()).append("\n");
         }
 
-        return MessageFormat.format(i18NService.get("GAME_END_ROUND"),
-                winningCard.getPlayer().getUser().getName(), winningCard.getCard().getText(),
-                round.getRoundNumber(), round.getRoundBlackCard().getText(), playedCards, points);
+        return MessageFormat.format(i18NService.get("GAME_END_ROUND"), winningCard.getPlayer().getUser().getName(), winningCard.getCard().getText(), round.getRoundNumber(), round.getRoundBlackCard().getText(), playedCards, points);
     }
 
     private String getCurrentPlayerNumberMessage(TelegramGame telegramGame) {
         StringBuilder message = new StringBuilder(
-                MessageFormat.format(i18NService.get("GAME_CREATED_CURRENT_PLAYER_NUMBER"),
-                        telegramGame.getGame().getPlayers().size()));
+                MessageFormat.format(i18NService.get("GAME_CREATED_CURRENT_PLAYER_NUMBER"), telegramGame.getGame().getPlayers().size()));
 
         for (Player player : telegramGame.getGame().getPlayers()) {
             message.append("\n").append(player.getUser().getName());
@@ -1188,8 +1089,7 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
     }
 
     private String getCurrentVoteDeletionNumberMessage(TelegramGame telegramGame) {
-        return MessageFormat.format(i18NService.get("GAME_CREATED_CURRENT_VOTE_DELETION_NUMBER"),
-                telegramGame.getGame().getDeletionVotes().size());
+        return MessageFormat.format(i18NService.get("GAME_CREATED_CURRENT_VOTE_DELETION_NUMBER"), telegramGame.getGame().getDeletionVotes().size());
     }
 
     private static String votationModeTag(VotationModeEnum mode) {

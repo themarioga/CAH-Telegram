@@ -32,29 +32,10 @@ import java.util.Map;
 public class SchemaGenerator {
 
     private static final List<Class<?>> ENTITIES = List.of(
-            org.themarioga.commons.engine.models.Lang.class,
-            org.themarioga.commons.engine.models.Tag.class,
-            org.themarioga.commons.engine.models.User.class,
-            org.themarioga.commons.engine.models.Room.class,
-            org.themarioga.commons.engine.models.Game.class,
-            org.themarioga.commons.engine.models.Player.class,
-            org.themarioga.engine.cah.models.dictionaries.Dictionary.class,
-            org.themarioga.engine.cah.models.dictionaries.DictionaryCollaborator.class,
-            org.themarioga.engine.cah.models.dictionaries.Card.class,
-            org.themarioga.engine.cah.models.game.Game.class,
-            org.themarioga.engine.cah.models.game.Player.class,
-            org.themarioga.engine.cah.models.game.Round.class,
-            org.themarioga.engine.cah.models.game.PlayedCard.class,
-            org.themarioga.engine.cah.models.game.PlayerHandCard.class,
-            org.themarioga.engine.cah.models.game.VotedCard.class,
-            org.themarioga.commons.telegram.models.TelegramUser.class,
-            org.themarioga.telegram.cah.models.TelegramRoom.class,
-            org.themarioga.telegram.cah.models.TelegramGame.class,
-            org.themarioga.telegram.cah.models.TelegramPlayer.class);
+            org.themarioga.commons.engine.models.Lang.class, org.themarioga.commons.engine.models.Tag.class, org.themarioga.commons.engine.models.User.class, org.themarioga.commons.engine.models.Room.class, org.themarioga.commons.engine.models.Game.class, org.themarioga.commons.engine.models.Player.class, org.themarioga.engine.cah.models.dictionaries.Dictionary.class, org.themarioga.engine.cah.models.dictionaries.DictionaryCollaborator.class, org.themarioga.engine.cah.models.dictionaries.Card.class, org.themarioga.engine.cah.models.game.Game.class, org.themarioga.engine.cah.models.game.Player.class, org.themarioga.engine.cah.models.game.Round.class, org.themarioga.engine.cah.models.game.PlayedCard.class, org.themarioga.engine.cah.models.game.PlayerHandCard.class, org.themarioga.engine.cah.models.game.VotedCard.class, org.themarioga.commons.telegram.models.TelegramUser.class, org.themarioga.telegram.cah.models.TelegramRoom.class, org.themarioga.telegram.cah.models.TelegramGame.class, org.themarioga.telegram.cah.models.TelegramPlayer.class);
 
     private static final Map<String, String> DIALECTS = Map.of(
-            "mariadb", "org.hibernate.dialect.MariaDBDialect",
-            "h2", "org.hibernate.dialect.H2Dialect");
+            "mariadb", "org.hibernate.dialect.MariaDBDialect", "h2", "org.hibernate.dialect.H2Dialect");
 
     public static void main(String[] args) throws Exception {
         Path outputDir = Path.of(args.length > 0 ? args[0] : "target/schema");
@@ -92,8 +73,7 @@ public class SchemaGenerator {
             ENTITIES.forEach(sources::addAnnotatedClass);
             Metadata metadata = sources.buildMetadata();
 
-            SchemaManagementToolCoordinator.process(metadata, registry, settings,
-                    DelayedDropRegistryNotAvailableImpl.INSTANCE);
+            SchemaManagementToolCoordinator.process(metadata, registry, settings, DelayedDropRegistryNotAvailableImpl.INSTANCE);
         } finally {
             StandardServiceRegistryBuilder.destroy(registry);
         }

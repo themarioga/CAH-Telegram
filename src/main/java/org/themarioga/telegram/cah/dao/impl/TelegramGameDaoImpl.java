@@ -18,25 +18,17 @@ public class TelegramGameDaoImpl extends AbstractHibernateDao<TelegramGame> impl
 
     @Override
     public TelegramGame getByGame(Game game) {
-        return getCurrentSession()
-                .createQuery("SELECT tg FROM TelegramGame tg WHERE tg.game = :game", TelegramGame.class)
-                .setParameter("game", game)
-                .getSingleResultOrNull();
+        return getCurrentSession().createQuery("SELECT tg FROM TelegramGame tg WHERE tg.game = :game", TelegramGame.class).setParameter("game", game).getSingleResultOrNull();
     }
 
     @Override
     public TelegramGame getByCreator(User creator) {
-        return getCurrentSession()
-                .createQuery("SELECT tg FROM TelegramGame tg JOIN FETCH tg.game g WHERE g.creator = :creator", TelegramGame.class)
-                .setParameter("creator", creator)
-                .getSingleResultOrNull();
+        return getCurrentSession().createQuery("SELECT tg FROM TelegramGame tg JOIN FETCH tg.game g WHERE g.creator = :creator", TelegramGame.class).setParameter("creator", creator).getSingleResultOrNull();
     }
 
     @Override
     public List<TelegramGame> getAll() {
-        return getCurrentSession()
-                .createQuery("SELECT tg FROM TelegramGame tg JOIN FETCH tg.game", TelegramGame.class)
-                .getResultList();
+        return getCurrentSession().createQuery("SELECT tg FROM TelegramGame tg JOIN FETCH tg.game", TelegramGame.class).getResultList();
     }
 
 }

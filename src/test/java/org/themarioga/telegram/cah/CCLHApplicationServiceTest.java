@@ -14,10 +14,7 @@ import java.util.Set;
  * contrato con lo que ya está desplegado. Los botones viven dentro de mensajes que Telegram guarda
  * indefinidamente, así que cambiar una clave rompe partidas que ya están en marcha.
  */
-@SpringBootTest(properties = {
-        "cclh.bot.enabled=true",
-        "cclh.bot.token=111:fake-token-de-pruebas",
-        "cclh.bot.name=cclhtestbot"})
+@SpringBootTest(properties = {"cclh.bot.enabled=true", "cclh.bot.token=111:fake-token-de-pruebas", "cclh.bot.name=cclhtestbot"})
 class CCLHApplicationServiceTest {
 
     @Autowired
@@ -25,15 +22,10 @@ class CCLHApplicationServiceTest {
     private ApplicationService applicationService;
 
     private static final Set<String> COMMANDS = Set.of(
-            "/start", "/lang", "/create", "/help", "/deletemygames", "/deletegamebyusername",
-            "/deleteallgames", "/sendmessagetoeveryone", "/toggleglobalmessages");
+            "/start", "/lang", "/create", "/help", "/deletemygames", "/deletegamebyusername", "/deleteallgames", "/sendmessagetoeveryone", "/toggleglobalmessages");
 
     private static final Set<String> CALLBACKS = Set.of(
-            "change_user_lang", "game_menu", "game_configure", "game_sel_mode", "game_sel_point_type",
-            "game_sel_dictionary", "game_sel_max_players", "game_sel_n_rounds", "game_sel_n_points",
-            "game_change_mode", "game_change_dictionary", "game_change_max_players",
-            "game_change_max_rounds", "game_change_max_points", "game_join", "game_leave",
-            "game_start", "play_card", "vote_card", "game_delete_group", "game_delete_private");
+            "change_user_lang", "game_menu", "game_configure", "game_sel_mode", "game_sel_point_type", "game_sel_dictionary", "game_sel_max_players", "game_sel_n_rounds", "game_sel_n_points", "game_change_mode", "game_change_dictionary", "game_change_max_players", "game_change_max_rounds", "game_change_max_points", "game_join", "game_leave", "game_start", "play_card", "vote_card", "game_delete_group", "game_delete_private");
 
     @Test
     void theCommandInterfaceIsUnchanged() {

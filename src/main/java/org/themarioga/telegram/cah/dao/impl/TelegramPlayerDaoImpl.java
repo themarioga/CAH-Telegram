@@ -18,18 +18,12 @@ public class TelegramPlayerDaoImpl extends AbstractHibernateDao<TelegramPlayer> 
 
     @Override
     public TelegramPlayer getByPlayer(Player player) {
-        return getCurrentSession()
-                .createQuery("SELECT tp FROM TelegramPlayer tp WHERE tp.player = :player", TelegramPlayer.class)
-                .setParameter("player", player)
-                .getSingleResultOrNull();
+        return getCurrentSession().createQuery("SELECT tp FROM TelegramPlayer tp WHERE tp.player = :player", TelegramPlayer.class).setParameter("player", player).getSingleResultOrNull();
     }
 
     @Override
     public List<TelegramPlayer> getByGame(Game game) {
-        return getCurrentSession()
-                .createQuery("SELECT tp FROM TelegramPlayer tp JOIN FETCH tp.player p WHERE p.game = :game", TelegramPlayer.class)
-                .setParameter("game", game)
-                .getResultList();
+        return getCurrentSession().createQuery("SELECT tp FROM TelegramPlayer tp JOIN FETCH tp.player p WHERE p.game = :game", TelegramPlayer.class).setParameter("game", game).getResultList();
     }
 
 }

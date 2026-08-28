@@ -29,8 +29,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
     private final I18NService i18NService;
 
     @Autowired
-    public DictionariesApplicationServiceImpl(@Qualifier("dictionariesBotMessageService") BotMessageService botMessageService,
-                                             DictionariesTelegramService dictionariesTelegramService, I18NService i18NService) {
+    public DictionariesApplicationServiceImpl(@Qualifier("dictionariesBotMessageService") BotMessageService botMessageService, DictionariesTelegramService dictionariesTelegramService, I18NService i18NService) {
         this.dictionariesTelegramService = dictionariesTelegramService;
         this.i18NService = i18NService;
         this.botMessageService = botMessageService;
@@ -58,11 +57,9 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
 
         commands.put("/lang", (message, data) -> {
             if (!BotMessageUtils.isMessagePrivate(message)) {
-                logger.error("Comando /lang enviado en lugar incorrecto por {}",
-                        BotMessageUtils.getUserInfo(message.getFrom()));
+                logger.error("Comando /lang enviado en lugar incorrecto por {}", BotMessageUtils.getUserInfo(message.getFrom()));
 
-                botMessageService.sendMessage(message.getChat().getId(),
-                        i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
+                botMessageService.sendMessage(message.getChat().getId(), i18NService.get("ERROR_COMMAND_SHOULD_BE_ON_PRIVATE", message.getFrom().getLanguageCode()));
 
                 return;
             }
@@ -490,8 +487,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             }
         });
 
-        commands.put("/getmyid", (message, data) -> botMessageService.sendMessage(message.getFrom().getId(),
-                "ID: " + message.getFrom().getId()));
+        commands.put("/getmyid", (message, data) -> botMessageService.sendMessage(message.getFrom().getId(), "ID: " + message.getFrom().getId()));
 
         commands.put("/help", (message, data) -> dictionariesTelegramService.sendHelpMessage(message.getChatId()));
 
@@ -506,8 +502,7 @@ public class DictionariesApplicationServiceImpl implements ApplicationService {
             try {
                 dictionariesTelegramService.loginUser(callbackQuery.getFrom().getId());
 
-                dictionariesTelegramService.changeUserLanguage(callbackQuery.getMessage().getMessageId(),
-                        data != null && !data.isBlank() ? data : callbackQuery.getFrom().getLanguageCode());
+                dictionariesTelegramService.changeUserLanguage(callbackQuery.getMessage().getMessageId(), data != null && !data.isBlank() ? data : callbackQuery.getFrom().getLanguageCode());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
