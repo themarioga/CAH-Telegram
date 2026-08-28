@@ -14,9 +14,10 @@ Qué hace, y por qué:
 * **Sintetiza los usuarios.** Del backup de usuarios solo sobrevivió el `creator_id`, que es el id de
   Telegram. Se crea un `users` con `username = "tg:<id>"` y su fila en `telegram_user`, de modo que
   el `login()` del bot les ponga su alias y su nombre real la primera vez que vuelvan a escribir.
-* **UUID deterministas** derivados del id antiguo: el script se puede volver a lanzar sin duplicar
-  nada, se puede rastrear qué fila era qué, y permite fijar el diccionario por defecto en la
-  configuración de la aplicación.
+* **UUID deterministas** derivados del id antiguo: se puede rastrear qué fila era qué y permite
+  fijar el diccionario por defecto en la configuración de la aplicación.
+* **Relanzable**: los INSERT se saltan las filas que ya estén (INSERT IGNORE en MariaDB, NOT EXISTS
+  en H2), así que volver a lanzarlo no duplica nada ni aborta a mitad.
 * **Los colaboradores se pierden**: no había CSV de `dictionary_collaborator` en el backup.
 """
 
@@ -68,6 +69,33 @@ def uuid_literal(value):
 
 def bool_literal(value):
     return "1" if value in ("1", 1, True) else "0"
+
+
+def write_insert(w, engine, table, columns, rows, pk="id"):
+    """Escribe un INSERT que se salta las filas que ya existan.
+
+    Hace falta porque el script se puede tener que relanzar (un lote que falló a medias, un backup
+    corregido) y porque el bot ya está en marcha: si uno de los creadores del backup ya ha escrito
+    al bot nuevo, su fila de telegram_user existe y un INSERT normal aborta la transacción entera.
+
+    Los dos motores lo escriben distinto. MariaDB tiene INSERT IGNORE; H2 no lo admite, ni tampoco
+    ON CONFLICT DO NOTHING, así que ahí se filtra con un NOT EXISTS sobre un VALUES derivado, que
+    conserva el insertado por lotes.
+
+    Ojo con INSERT IGNORE: en MariaDB degrada a aviso *cualquier* error de fila, no solo la clave
+    duplicada (truncados, fechas inválidas, claves ajenas). Por eso main() valida antes el largo de
+    los textos y los tipos de carta, y descarta las cartas huérfanas: cuando llega aquí, lo único
+    que debería poder saltar es una clave repetida.
+    """
+    cols = ", ".join(columns)
+
+    if engine == "mariadb":
+        w(f"INSERT IGNORE INTO {table} ({cols}) VALUES\n")
+        w(",\n".join(rows) + ";\n\n")
+    else:
+        projection = ", ".join(f"v.{c}" for c in columns)
+        w(f"INSERT INTO {table} ({cols})\nSELECT {projection} FROM (VALUES\n")
+        w(",\n".join(rows) + f"\n) v({cols})\nWHERE NOT EXISTS (SELECT 1 FROM {table} WHERE {table}.{pk} = v.{pk});\n\n")
 
 
 def chunked(items, size):
@@ -146,24 +174,21 @@ def write(out, args, dictionaries, cards, creators, orphans):
 """)
 
     w("-- Usuarios sintetizados a partir de los creadores de los diccionarios\n")
-    w("INSERT INTO users (id, creation_date, active, name, username, lang_id) VALUES\n")
     rows = []
     for telegram_id in creators:
         user_uuid = uuid_literal(deterministic_uuid(NS_USER, telegram_id))
         synthetic = f"tg:{telegram_id}"
         rows.append(f"    ({user_uuid}, '{FALLBACK_DATE}', 1, {quote(synthetic)}, {quote(synthetic)}, '{DEFAULT_LANG}')")
-    w(",\n".join(rows) + ";\n\n")
+    write_insert(w, engine, "users", ["id", "creation_date", "active", "name", "username", "lang_id"], rows)
 
     w("-- Equivalencia con Telegram: el id de usuario del backup ya era el id de Telegram\n")
-    w("INSERT INTO telegram_user (id, user_id, language_code, last_seen) VALUES\n")
     rows = []
     for telegram_id in creators:
         user_uuid = uuid_literal(deterministic_uuid(NS_USER, telegram_id))
         rows.append(f"    ({telegram_id}, {user_uuid}, '{DEFAULT_LANG}', NULL)")
-    w(",\n".join(rows) + ";\n\n")
+    write_insert(w, engine, "telegram_user", ["id", "user_id", "language_code", "last_seen"], rows)
 
     w("-- Diccionarios (solo los que tienen cartas)\n")
-    w("INSERT INTO dictionary (id, creation_date, name, published, shared, creator_id, lang_id) VALUES\n")
     rows = []
     for d in dictionaries:
         rows.append(
@@ -171,11 +196,10 @@ def write(out, args, dictionaries, cards, creators, orphans):
             f"'{parse_date(d['creation_date'])}', {quote(d['name'])}, "
             f"{bool_literal(d['published'])}, {bool_literal(d['shared'])}, "
             f"{uuid_literal(deterministic_uuid(NS_USER, d['creator_id']))}, '{DEFAULT_LANG}')")
-    w(",\n".join(rows) + ";\n\n")
+    write_insert(w, engine, "dictionary", ["id", "creation_date", "name", "published", "shared", "creator_id", "lang_id"], rows)
 
     w(f"-- Cartas ({len(cards)}), en lotes de {args.batch_size}\n")
     for batch in chunked(cards, args.batch_size):
-        w("INSERT INTO card (id, creation_date, text, type, dictionary_id) VALUES\n")
         rows = []
         for c in batch:
             rows.append(
@@ -183,7 +207,7 @@ def write(out, args, dictionaries, cards, creators, orphans):
                 f"'{parse_date(c['creation_date'])}', {quote(c['text'])}, "
                 f"{LEGACY_CARD_TYPE[c['type']]}, "
                 f"{uuid_literal(deterministic_uuid(NS_DICTIONARY, c['dictionary_id']))})")
-        w(",\n".join(rows) + ";\n\n")
+        write_insert(w, engine, "card", ["id", "creation_date", "text", "type", "dictionary_id"], rows)
 
     w("COMMIT;\n")
 
