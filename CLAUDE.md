@@ -22,8 +22,8 @@ programático, sin login), `org.telegram:telegrambots-*`, JUnit 5 + Mockito.
   comparan la lista completa contra la original.
 - **El identificador de un usuario o de una sala del motor NO es un id de chat.** Son `UUID`; el chat
   se resuelve por `telegram_user` y `telegram_room`. Confundirlos es escribir a un chat inexistente.
-- **Nada de esto ha hablado todavía con Telegram**: no se ha probado contra un bot real ni en modo
-  webhook.
+- **Telegram ya entrega updates reales al webhook**, pero ningún flujo de bot se ha probado de
+  punta a punta contra un bot real.
 - **No ejecutes el perfil `check`**: el formateador compartido une las líneas partidas y no las
   vuelve a partir, dejando líneas de más de 1000 caracteres.
 
