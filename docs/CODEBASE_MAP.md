@@ -176,4 +176,4 @@ chat**: para escribir a alguien hay que volver por `telegram_user`.
 | De dónde sale el chat al que se escribe | `chatIdOf(User)` y `TelegramGameService.getChatId(Room)` |
 | Cómo se prueba todo esto | `src/test/java/.../support/BotFlowTest` y los `*FlowTest` |
 | Cómo regenerar el esquema | `src/test/java/.../tools/SchemaGenerator` |
-| El porqué de cada decisión | `docs/CAH-Telegram-PLAN.md` del superproyecto |
+| El porqué de cada decisión | `../../docs/specs/CAH-Telegram-PLAN.md` del superproyecto |

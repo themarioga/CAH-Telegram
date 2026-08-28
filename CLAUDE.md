@@ -29,4 +29,4 @@ programático, sin login), `org.telegram:telegrambots-*`, JUnit 5 + Mockito.
 
 Para la arquitectura, el flujo de una partida y los detalles del porte, ver
 [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md). El plan de trabajo del que salió este proyecto está en
-[`docs/CAH-Telegram-PLAN.md`](../docs/CAH-Telegram-PLAN.md) del superproyecto.
+[`../docs/specs/CAH-Telegram-PLAN.md`](../docs/specs/CAH-Telegram-PLAN.md) del superproyecto.
