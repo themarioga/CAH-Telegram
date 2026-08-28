@@ -7,24 +7,28 @@
 -- Sustituye al histórico V1/V2, que quedó desincronizado del modelo (ids BIGINT frente a
 -- UUID, tablas t_* frente a las actuales) y además tenía el SQL corrompido por un
 -- reemplazo de 'table' por 'Game'.
-
+--
+-- Los UUID van con el tipo nativo 'uuid', que MariaDB tiene desde la 10.7: es lo que Hibernate
+-- valida en tiempo de ejecución al preguntarle la versión al servidor. Con binary(16) (lo que
+-- genera el dialecto si se le deja asumir su version minima, 10.6) el arranque muere en
+-- "wrong column type encountered in column [id] in table [card]". Requiere MariaDB >= 10.7.
 
     create table card (
-        id binary(16) not null,
+        id uuid not null,
         creation_date datetime(6) not null,
         text varchar(256) not null,
         type tinyint not null check ((type between 0 and 1)),
-        dictionary_id binary(16),
+        dictionary_id uuid,
         primary key (id)
     ) engine=InnoDB;
 
     create table dictionary (
-        id binary(16) not null,
+        id uuid not null,
         creation_date datetime(6) not null,
         name varchar(256) not null,
         published bit not null,
         shared bit not null,
-        creator_id binary(16) not null,
+        creator_id uuid not null,
         lang_id varchar(255) not null,
         primary key (id)
     ) engine=InnoDB;
@@ -32,39 +36,39 @@
     create table dictionary_collaborator (
         accepted bit not null,
         can_edit bit not null,
-        user_id binary(16) not null,
-        dictionary_id binary(16) not null,
+        user_id uuid not null,
+        dictionary_id uuid not null,
         primary key (dictionary_id, user_id)
     ) engine=InnoDB;
 
     create table game (
-        id binary(16) not null,
+        id uuid not null,
         creation_date datetime(6) not null,
         status tinyint not null check ((status between 0 and 3)),
-        creator_id binary(16) not null,
-        room_id binary(16) not null,
+        creator_id uuid not null,
+        room_id uuid not null,
         max_number_of_players integer not null,
         number_of_points_to_win integer not null,
         number_of_rounds_to_end integer not null,
         punctuation_mode tinyint not null check ((punctuation_mode between 0 and 1)),
         votation_mode tinyint not null check ((votation_mode between 0 and 2)),
-        dictionary_id binary(16) not null,
+        dictionary_id uuid not null,
         primary key (id)
     ) engine=InnoDB;
 
     create table game_black_cards_deck (
-        game_id binary(16) not null,
-        card_id binary(16) not null
+        game_id uuid not null,
+        card_id uuid not null
     ) engine=InnoDB;
 
     create table game_deletion_votes (
-        game_id binary(16) not null,
-        user_id binary(16) not null
+        game_id uuid not null,
+        user_id uuid not null
     ) engine=InnoDB;
 
     create table game_white_cards_deck (
-        game_id binary(16) not null,
-        card_id binary(16) not null
+        game_id uuid not null,
+        card_id uuid not null
     ) engine=InnoDB;
 
     create table lang (
@@ -74,36 +78,36 @@
     ) engine=InnoDB;
 
     create table played_card (
-        player_id binary(16) not null,
-        card_id binary(16) not null,
-        round_id binary(16) not null,
+        player_id uuid not null,
+        card_id uuid not null,
+        round_id uuid not null,
         primary key (card_id, player_id, round_id)
     ) engine=InnoDB;
 
     create table player (
-        id binary(16) not null,
+        id uuid not null,
         creation_date datetime(6) not null,
         join_order integer not null,
-        game_id binary(16) not null,
-        user_id binary(16) not null,
+        game_id uuid not null,
+        user_id uuid not null,
         points integer not null,
-        played_card_card_id binary(16),
-        played_card_player_id binary(16),
-        played_card_round_id binary(16),
-        voted_card_card_id binary(16),
-        voted_card_player_id binary(16),
-        voted_card_round_id binary(16),
+        played_card_card_id uuid,
+        played_card_player_id uuid,
+        played_card_round_id uuid,
+        voted_card_card_id uuid,
+        voted_card_player_id uuid,
+        voted_card_round_id uuid,
         primary key (id)
     ) engine=InnoDB;
 
     create table player_hand_card (
-        player_id binary(16) not null,
-        card_id binary(16) not null,
+        player_id uuid not null,
+        card_id uuid not null,
         primary key (card_id, player_id)
     ) engine=InnoDB;
 
     create table room (
-        id binary(16) not null,
+        id uuid not null,
         creation_date datetime(6) not null,
         active bit not null,
         name varchar(256) not null,
@@ -112,13 +116,13 @@
     ) engine=InnoDB;
 
     create table round (
-        id binary(16) not null,
+        id uuid not null,
         creation_date datetime(6) not null,
         round_number integer not null,
         status tinyint not null check ((status between 0 and 2)),
-        game_id binary(16) not null,
-        round_black_card_id binary(16) not null,
-        round_president_id binary(16),
+        game_id uuid not null,
+        round_black_card_id uuid not null,
+        round_president_id uuid,
         primary key (id)
     ) engine=InnoDB;
 
@@ -133,19 +137,19 @@
         creator_message_id integer not null,
         current_round_message_id integer,
         first_message_id integer not null,
-        game_id binary(16) not null,
+        game_id uuid not null,
         primary key (game_id)
     ) engine=InnoDB;
 
     create table telegram_player (
         hand_message_id integer not null,
-        player_id binary(16) not null,
+        player_id uuid not null,
         primary key (player_id)
     ) engine=InnoDB;
 
     create table telegram_room (
         id bigint not null,
-        room_id binary(16) not null,
+        room_id uuid not null,
         primary key (id)
     ) engine=InnoDB;
 
@@ -153,12 +157,12 @@
         id bigint not null,
         language_code varchar(8),
         last_seen datetime(6),
-        user_id binary(16) not null,
+        user_id uuid not null,
         primary key (id)
     ) engine=InnoDB;
 
     create table users (
-        id binary(16) not null,
+        id uuid not null,
         creation_date datetime(6) not null,
         active bit not null,
         name varchar(256) not null,
@@ -168,9 +172,9 @@
     ) engine=InnoDB;
 
     create table voted_card (
-        player_id binary(16) not null,
-        card_id binary(16) not null,
-        round_id binary(16) not null,
+        player_id uuid not null,
+        card_id uuid not null,
+        round_id uuid not null,
         primary key (card_id, player_id, round_id)
     ) engine=InnoDB;
 

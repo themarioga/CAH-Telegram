@@ -59,9 +59,11 @@ def quote(text):
     return "'" + text.replace("\\", "\\\\").replace("'", "''") + "'"
 
 
-def uuid_literal(value, engine):
-    # MariaDB guarda los UUID como binary(16); H2 tiene tipo uuid nativo.
-    return f"UNHEX(REPLACE('{value}', '-', ''))" if engine == "mariadb" else f"'{value}'"
+def uuid_literal(value):
+    # Los dos motores usan tipo uuid nativo, asi que vale el literal canonico con guiones:
+    # H2 lo tiene de siempre y MariaDB desde la 10.7, que es la version para la que se genera
+    # el baseline. Antes MariaDB llevaba binary(16) y aqui habia que envolverlo en UNHEX().
+    return f"'{value}'"
 
 
 def bool_literal(value):
@@ -147,7 +149,7 @@ def write(out, args, dictionaries, cards, creators, orphans):
     w("INSERT INTO users (id, creation_date, active, name, username, lang_id) VALUES\n")
     rows = []
     for telegram_id in creators:
-        user_uuid = uuid_literal(deterministic_uuid(NS_USER, telegram_id), engine)
+        user_uuid = uuid_literal(deterministic_uuid(NS_USER, telegram_id))
         synthetic = f"tg:{telegram_id}"
         rows.append(f"    ({user_uuid}, '{FALLBACK_DATE}', 1, {quote(synthetic)}, {quote(synthetic)}, '{DEFAULT_LANG}')")
     w(",\n".join(rows) + ";\n\n")
@@ -156,7 +158,7 @@ def write(out, args, dictionaries, cards, creators, orphans):
     w("INSERT INTO telegram_user (id, user_id, language_code, last_seen) VALUES\n")
     rows = []
     for telegram_id in creators:
-        user_uuid = uuid_literal(deterministic_uuid(NS_USER, telegram_id), engine)
+        user_uuid = uuid_literal(deterministic_uuid(NS_USER, telegram_id))
         rows.append(f"    ({telegram_id}, {user_uuid}, '{DEFAULT_LANG}', NULL)")
     w(",\n".join(rows) + ";\n\n")
 
@@ -165,10 +167,10 @@ def write(out, args, dictionaries, cards, creators, orphans):
     rows = []
     for d in dictionaries:
         rows.append(
-            f"    ({uuid_literal(deterministic_uuid(NS_DICTIONARY, d['id']), engine)}, "
+            f"    ({uuid_literal(deterministic_uuid(NS_DICTIONARY, d['id']))}, "
             f"'{parse_date(d['creation_date'])}', {quote(d['name'])}, "
             f"{bool_literal(d['published'])}, {bool_literal(d['shared'])}, "
-            f"{uuid_literal(deterministic_uuid(NS_USER, d['creator_id']), engine)}, '{DEFAULT_LANG}')")
+            f"{uuid_literal(deterministic_uuid(NS_USER, d['creator_id']))}, '{DEFAULT_LANG}')")
     w(",\n".join(rows) + ";\n\n")
 
     w(f"-- Cartas ({len(cards)}), en lotes de {args.batch_size}\n")
@@ -177,10 +179,10 @@ def write(out, args, dictionaries, cards, creators, orphans):
         rows = []
         for c in batch:
             rows.append(
-                f"    ({uuid_literal(deterministic_uuid(NS_CARD, c['id']), engine)}, "
+                f"    ({uuid_literal(deterministic_uuid(NS_CARD, c['id']))}, "
                 f"'{parse_date(c['creation_date'])}', {quote(c['text'])}, "
                 f"{LEGACY_CARD_TYPE[c['type']]}, "
-                f"{uuid_literal(deterministic_uuid(NS_DICTIONARY, c['dictionary_id']), engine)})")
+                f"{uuid_literal(deterministic_uuid(NS_DICTIONARY, c['dictionary_id']))})")
         w(",\n".join(rows) + ";\n\n")
 
     w("COMMIT;\n")
