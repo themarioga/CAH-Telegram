@@ -21,8 +21,8 @@ import java.util.List;
 @SpringBootTest
 class SchemaBaselineTest {
 
-    /** Textos recuperados de las migraciones antiguas, más los ocho que hubo que escribir. */
-    private static final int EXPECTED_TAGS = 215;
+    /** Textos recuperados de las migraciones antiguas, más los ocho que hubo que escribir y el freno de la difusión. */
+    private static final int EXPECTED_TAGS = 216;
 
     @Autowired
     private LanguageService languageService;

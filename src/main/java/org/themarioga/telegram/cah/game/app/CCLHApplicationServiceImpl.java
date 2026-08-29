@@ -155,10 +155,10 @@ public class CCLHApplicationServiceImpl implements ApplicationService {
             try {
                 cclhTelegramService.loginUser(message.getFrom().getId());
 
+                // El "se han enviado todos" lo da ahora el servicio, y solo cuando de verdad ha
+                // enviado algo: aquí se decía siempre, incluso cuando la difusión se rechazaba
                 cclhTelegramService.sendMessageToEveryone(
                         cclhBotMessageService.sanitizeTextFromCommand("/sendmessagetoeveryone", message.getText()));
-
-                cclhBotMessageService.sendMessage(message.getChatId(), i18NService.get("ALL_MESSAGES_SENT"));
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }

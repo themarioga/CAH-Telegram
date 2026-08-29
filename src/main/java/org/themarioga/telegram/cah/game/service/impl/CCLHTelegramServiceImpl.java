@@ -84,6 +84,9 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
 
     private static final Logger logger = LoggerFactory.getLogger(CCLHTelegramServiceImpl.class);
 
+    /** Lo que admite {@code sendMessage} de Telegram. Solo la difusión puede acercarse: la escribe una persona. */
+    private static final int MAX_MESSAGE_LENGTH = 4096;
+
     private final BotMessageService botMessageService;
     private final CAHService cahService;
     private final GameService gameService;
@@ -638,12 +641,13 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
     public void deleteGameByCreatorUsername(String username) {
-        requireAdmin();
-
         guarded(() -> {
+            requireAdmin();
+
             // El alias se resuelve contra la identidad del motor, normalizando lo que teclee el
             // administrador (con o sin arroba, en cualquier combinación de mayúsculas)
             User creator = userService.getByUsername(TelegramUserUtils.normalizeUsername(username));
+            if (creator == null) throw new UserDoesntExistsException();
 
             deleteGame(getGameByCreator(creator));
 
@@ -654,50 +658,70 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = ApplicationException.class)
     public void deleteAllGames() {
-        requireAdmin();
+        guarded(() -> {
+            requireAdmin();
 
-        for (TelegramGame telegramGame : telegramGameService.getAll()) {
-            // Una partida que falle no puede impedir que se borren las demás: el anterior
-            // propagaba la excepción y dejaba el resto sin tocar
-            try {
-                Long creatorChatId = chatIdOf(telegramGame.getGame().getCreator());
+            for (TelegramGame telegramGame : telegramGameService.getAll()) {
+                // Una partida que falle no puede impedir que se borren las demás: el anterior
+                // propagaba la excepción y dejaba el resto sin tocar
+                try {
+                    Long creatorChatId = chatIdOf(telegramGame.getGame().getCreator());
 
-                deleteGame(telegramGame);
+                    deleteGame(telegramGame);
 
-                if (creatorChatId != null) {
-                    botMessageService.sendMessage(creatorChatId, i18NService.get("GAME_DELETION_FORCED"));
+                    if (creatorChatId != null) {
+                        botMessageService.sendMessage(creatorChatId, i18NService.get("GAME_DELETION_FORCED"));
+                    }
+                } catch (ApplicationException e) {
+                    logger.error("No se ha podido borrar la partida {}: {}", telegramGame.getGame().getId(), e.getMessage(), e);
                 }
-            } catch (ApplicationException e) {
-                logger.error("No se ha podido borrar la partida {}: {}", telegramGame.getGame().getId(), e.getMessage(), e);
             }
-        }
 
-        notifyAdmins(i18NService.get("GAME_DELETION_ALL"));
+            notifyAdmins(i18NService.get("GAME_DELETION_ALL"));
+        });
     }
 
     @Override
     @Transactional(propagation = Propagation.SUPPORTS)
     public void sendMessageToEveryone(String message) {
-        requireAdmin();
+        guarded(() -> {
+            requireAdmin();
 
-        if (Boolean.FALSE.equals(canSendGlobalMessages)) {
-            logger.info("Los mensajes globales están desactivados");
-            return;
-        }
+            if (Boolean.FALSE.equals(canSendGlobalMessages)) {
+                logger.info("Los mensajes globales están desactivados");
 
-        for (User user : userService.getAllUsers()) {
-            Long userChatId = chatIdOf(user);
-            if (userChatId == null) continue;
+                notifyAdmins(i18NService.get("GAME_GLOBAL_MESSAGES_OFF"));
 
-            sendGlobalMessage(userChatId, message, active -> userService.setActive(user, active));
-        }
+                return;
+            }
 
-        for (Room room : roomService.getAllRooms()) {
-            Long roomChatId = telegramGameService.getChatId(room);
-            if (roomChatId == null) continue;
+            // El texto se mide antes de empezar, y no por pulcritud: un envío que Telegram rechaza
+            // marca ese chat como inactivo, así que un mensaje vacío —/sendmessagetoeveryone sin
+            // texto— o más largo de la cuenta daría de baja a toda la base de datos de una tacada
+            if (message == null || message.isBlank() || message.length() > MAX_MESSAGE_LENGTH) {
+                logger.warn("Difusión rechazada: el mensaje mide {} caracteres", message == null ? 0 : message.length());
 
-            sendGlobalMessage(roomChatId, message, active -> roomService.setActive(room, active));
-        }
+                notifyAdmins(i18NService.get("ERROR_MESSAGE_TOO_LONG"));
+
+                return;
+            }
+
+            for (User user : userService.getAllUsers()) {
+                Long userChatId = chatIdOf(user);
+                if (userChatId == null) continue;
+
+                sendGlobalMessage(userChatId, message, active -> userService.setActive(user, active));
+            }
+
+            for (Room room : roomService.getAllRooms()) {
+                Long roomChatId = telegramGameService.getChatId(room);
+                if (roomChatId == null) continue;
+
+                sendGlobalMessage(roomChatId, message, active -> roomService.setActive(room, active));
+            }
+
+            notifyAdmins(i18NService.get("ALL_MESSAGES_SENT"));
+        });
     }
 
     /**
@@ -719,11 +743,13 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
     @Override
     @Transactional(propagation = Propagation.SUPPORTS)
     public void toggleGlobalMessages() {
-        requireAdmin();
+        guarded(() -> {
+            requireAdmin();
 
-        canSendGlobalMessages = !canSendGlobalMessages;
+            canSendGlobalMessages = !canSendGlobalMessages;
 
-        notifyAdmins(i18NService.get(Boolean.TRUE.equals(canSendGlobalMessages) ? "GAME_GLOBAL_MESSAGES_ON" : "GAME_GLOBAL_MESSAGES_OFF"));
+            notifyAdmins(i18NService.get(Boolean.TRUE.equals(canSendGlobalMessages) ? "GAME_GLOBAL_MESSAGES_ON" : "GAME_GLOBAL_MESSAGES_OFF"));
+        });
     }
 
     private void notifyAdmins(String message) {
@@ -732,6 +758,10 @@ public class CCLHTelegramServiceImpl implements CCLHTelegramService {
         }
     }
 
+    /**
+     * Va <b>dentro</b> del {@code guarded}, no delante: si no, la excepción se escapa a la capa de
+     * arriba, que solo la apunta en el log, y quien ha tecleado el comando no ve nada.
+     */
     private void requireAdmin() {
         requireSession();
 

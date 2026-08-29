@@ -52,11 +52,11 @@ src/main/java/org/themarioga/telegram/cah/
     ├── app/DictionariesApplicationServiceImpl.java # 27 comandos + 29 callbacks
     └── service/{intf,impl}/DictionariesTelegramService
 
-src/main/resources/db/migration/{mariadb,h2}/V3/
-├── V3.0.0_1__Baseline.sql          # generado desde las entidades, no escrito a mano
-└── V3.0.0_2__Languages_and_tags.sql # 215 tags x 2 idiomas
+src/main/resources/db/migration/{mariadb,h2}/V2/
+├── V2.0.0_1__Baseline.sql          # generado desde las entidades, no escrito a mano
+└── V2.0.0_2__Languages_and_tags.sql # 216 tags x 2 idiomas
 
-tools/legacy_data_migration.py      # backup 0.1.0 (CSV) → esquema V3
+tools/legacy_data_migration.py      # backup 0.1.0 (CSV) → esquema V2
 src/test/java/.../tools/SchemaGenerator.java  # regenera el baseline
 ```
 
@@ -165,6 +165,13 @@ chat**: para escribir a alguien hay que volver por `telegram_user`.
 6. **Nada se ha probado contra Telegram**: ni un token real, ni un grupo, ni el modo webhook.
 7. **Los dos starters de telegrambots chocan** (declaran el mismo bean) y están excluidos con
    `spring.autoconfigure.exclude`; los bots los levanta `TelegramBotsRegistrarConfig`.
+8. **Los comandos de administración comprueban el rol dentro del `guarded`**, no delante. Puesto
+   delante —como estaba hasta 2026-08-29— la excepción se escapa a la tabla de comandos, que solo la
+   apunta en el log, y quien lo intenta sin ser administrador no ve nada. Y el motor deja pasar a
+   quien administra en la comprobación del creador: sin eso, los dos comandos de borrado ajeno no
+   podían borrar nada.
+9. **La difusión mide el mensaje antes de salir.** Cada envío que Telegram rechaza marca ese chat como
+   inactivo, así que un `/sendmessagetoeveryone` sin texto daba de baja a toda la base de datos.
 
 ## Navigation Guide
 
@@ -172,7 +179,7 @@ chat**: para escribir a alguien hay que volver por `telegram_user`.
 |---|---|
 | Qué comandos existen | `game/app/` y `dictionaries/app/` |
 | Cómo se compone un mensaje | los métodos privados al final de cada `*TelegramServiceImpl` |
-| Por qué un error sale traducido así | `config/ErrorMessageResolver` y `V3.0.0_2__Languages_and_tags.sql` |
+| Por qué un error sale traducido así | `config/ErrorMessageResolver` y `V2.0.0_2__Languages_and_tags.sql` |
 | De dónde sale el chat al que se escribe | `chatIdOf(User)` y `TelegramGameService.getChatId(Room)` |
 | Cómo se prueba todo esto | `src/test/java/.../support/BotFlowTest` y los `*FlowTest` |
 | Cómo regenerar el esquema | `src/test/java/.../tools/SchemaGenerator` |
